@@ -19,7 +19,7 @@
     --accent: #2563eb;
     --gold: #b45309;
     --gold-bg: rgba(180, 83, 9, 0.06);
-    --gold-border: rgba(180, 83, 9, 0.2);
+    --gold-border: rgba(180, 83, 9, 0.32);
     --challenge-red: #dc2626;
     --challenge-red-bg: rgba(220, 38, 38, 0.04);
     --challenge-red-border: rgba(220, 38, 38, 0.15);
@@ -56,69 +56,174 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  /* ===== HEADER ===== */
-  .header { max-width: 1440px; margin: 0 auto calc(var(--rhythm) * 5); text-align: center; }
+  /* ===== HERO (header + question + roster as one unit) ===== */
+  .hero {
+    max-width: 880px;
+    margin: 0 auto calc(var(--rhythm) * 3);
+    padding: calc(var(--rhythm) * 1.5) calc(var(--rhythm) * 2) calc(var(--rhythm) * 2);
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    text-align: center;
+  }
 
   .header-label {
-    font-size: 0.8rem;
+    font-size: 0.72rem;
     color: var(--text-light);
-    margin-bottom: var(--rhythm);
-    letter-spacing: 0.12em;
+    margin-bottom: calc(var(--rhythm) * 1.5);
+    letter-spacing: 0.14em;
     text-transform: uppercase;
     font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: calc(var(--rhythm));
+    flex-wrap: wrap;
   }
 
   .debate-badge {
     display: inline-flex;
     align-items: center;
     gap: calc(var(--rhythm) / 2);
-    font-size: 0.72rem;
+    font-size: 0.68rem;
     font-weight: 600;
     color: var(--challenge-red);
     background: var(--challenge-red-bg);
-    padding: 0.25em 0.7em;
+    padding: 0.2em 0.65em;
     border-radius: 20px;
     border: 1px solid var(--challenge-red-border);
-    margin-left: calc(var(--rhythm));
-    letter-spacing: 0.02em;
+    margin-left: 0;
+    letter-spacing: 0.04em;
     vertical-align: middle;
   }
 
-  .question {
-    font-size: 1.2rem;
-    font-weight: 600;
-    line-height: 1.65;
-    color: var(--text);
-    padding: calc(var(--rhythm) * 2.5) calc(var(--rhythm) * 3.5);
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    display: inline-block;
-    max-width: 800px;
-    margin-top: calc(var(--rhythm) * 1.5);
+  /* ===== MODE SWITCH (segmented control) ===== */
+  .mode-switch {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(0,0,0,0.04);
+    border-radius: 20px;
+    padding: 2px;
+    margin-left: 0;
+    gap: 0;
   }
 
-  /* ===== ROSTER BAR ===== */
+  .mode-switch-btn {
+    appearance: none;
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--text-light);
+    padding: 0.5em 1em;
+    border-radius: 18px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    line-height: 1;
+  }
+
+  .mode-switch-btn:hover {
+    color: var(--text);
+  }
+
+  .mode-switch-btn.active {
+    background: var(--surface);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 0 rgba(0,0,0,0.02);
+  }
+
+  .mode-switch-btn[data-mode="debate"].active {
+    color: var(--challenge-red);
+  }
+
+  .mode-switch-btn[data-mode="compare"].active {
+    color: var(--accent);
+  }
+
+  /* ===== COMPARE MODE: hide debate-only content (challenges, rebuttals, debate summary)
+     Keep winner-banner: 🏆 recommended answer + reason is core comparison info, not debate. */
+  body.mode-compare .debate-panel,
+  body.mode-compare .debate-summary {
+    display: none !important;
+  }
+
+  /* Visual compensation: in Compare mode, winner-banner sits directly on top of grid
+     (实色块紧挨实色块), 12px feels too cramped without the airy debate-summary buffer.
+     Bump margin to 4×rhythm (32px) so the gap reads as "open" like Debate mode. */
+  body.mode-compare .winner-banner {
+    margin-bottom: calc(var(--rhythm) * 4);
+  }
+
+  /* Debate mode: debate-summary → grid 也用同样的 32px，让"辩论结果块→答案卡"
+     的呼吸感和 Compare 模式的"winner-banner→答案卡"一致。
+     winner-banner→debate-summary 之间保留 12px（轻量元素相邻，紧凑合理）。 */
+  body.mode-debate .debate-summary {
+    margin-bottom: calc(var(--rhythm) * 4);
+  }
+
+  .question {
+    font-size: 1.3rem;
+    font-weight: 600;
+    line-height: 1.6;
+    color: var(--text);
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    display: block;
+    max-width: 720px;
+    margin: 0 auto;
+    letter-spacing: 0.005em;
+  }
+
+  /* Hero divider */
+  .hero-divider {
+    height: 1px;
+    background: var(--border);
+    margin: calc(var(--rhythm) * 2) auto calc(var(--rhythm) * 1.5);
+    max-width: 160px;
+    opacity: 0.6;
+  }
+
+  /* ===== ROSTER BAR (now inside hero) ===== */
+  .roster-section {
+    margin: 0;
+    text-align: center;
+  }
+
+  .roster-title {
+    font-size: 0.68rem;
+    font-weight: 500;
+    color: var(--text-light);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-bottom: calc(var(--rhythm) * 1);
+  }
+
   .roster {
-    max-width: 1440px;
-    margin: 0 auto calc(var(--rhythm) * 4);
     display: flex;
     justify-content: center;
     flex-wrap: wrap;
-    gap: calc(var(--rhythm) * 1.25);
+    gap: calc(var(--rhythm) * 2.5);
+    row-gap: calc(var(--rhythm) * 1);
   }
 
   .roster-item {
     display: inline-flex;
     align-items: center;
     gap: calc(var(--rhythm) / 2);
-    padding: calc(var(--rhythm) * 0.75) calc(var(--rhythm) * 1.5);
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 24px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 0;
     font-size: 0.82rem;
     font-weight: 500;
     letter-spacing: 0.01em;
+    color: var(--text);
   }
 
   .roster-dot {
@@ -131,7 +236,7 @@
   /* ===== WINNER BANNER ===== */
   .winner-banner {
     max-width: 1440px;
-    margin: 0 auto calc(var(--rhythm) * 4.5);
+    margin: 0 auto calc(var(--rhythm) * 1.5);
     padding: calc(var(--rhythm) * 2) calc(var(--rhythm) * 3);
     background: var(--gold-bg);
     border: 1px solid var(--gold-border);
@@ -154,20 +259,30 @@
     color: var(--gold);
   }
 
-  /* ===== DEBATE SUMMARY STRIP ===== */
+  /* ===== DEBATE SUMMARY STRIP =====
+     Same shape & rhythm as winner-banner, but de-emphasized
+     (transparent bg, dashed border, neutral text). */
   .debate-summary {
     max-width: 1440px;
-    margin: 0 auto calc(var(--rhythm) * 4);
-    padding: calc(var(--rhythm) * 1.25) calc(var(--rhythm) * 2.5);
-    background: var(--surface);
+    margin: 0 auto calc(var(--rhythm) * 1.5);
+    padding: calc(var(--rhythm) * 2) calc(var(--rhythm) * 3);
+    background: transparent;
     border: 1px dashed var(--border-strong);
-    border-radius: 10px;
-    font-size: 0.8rem;
-    color: var(--text-dim);
-    line-height: 1.65;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: calc(var(--rhythm));
   }
 
-  .debate-summary strong { color: var(--text); }
+  .debate-summary-icon { font-size: 1.15rem; flex-shrink: 0; }
+
+  .debate-summary-text {
+    font-size: 0.88rem;
+    line-height: 1.55;
+    color: var(--text-dim);
+  }
+
+  .debate-summary-text strong { color: var(--text); font-weight: 700; }
 
   /* ===== GRID — hero + sidebar layout ===== */
   .grid {
@@ -175,11 +290,18 @@
     gap: var(--space-m);
     max-width: 1440px;
     margin: 0 auto;
-    align-items: flex-start;
+    /* stretch: 让主卡高度自动 ≥ sidebar 总高度，避免主卡正文短时下方留大白
+       (主卡是 flex column，card-body flex:1 会自动吃满拉伸出来的空间)。
+       折叠/切换内容时同样保持视觉平衡。 */
+    align-items: stretch;
   }
 
-  /* Hero card (recommended) — fills main column, no width cap */
-  .card.recommended {
+  /* Hero card (主卡位) — fills main column, no width cap.
+     注意：选择器只看是否 .collapsed，不看 .recommended——
+     "在主卡位" 是布局状态，"是推荐回答" 是数据状态，两者解耦。
+     被切到次卡的推荐卡 .recommended 还在（仍有金边），
+     当前主卡位的卡可能根本就不是推荐。 */
+  .card:not(.collapsed) {
     flex: 1.65;
     min-width: 0;
   }
@@ -195,7 +317,8 @@
   }
 
   .card.collapsed .card-summary-wrap {
-    padding: calc(var(--rhythm) * 1.25) calc(var(--rhythm) * 1.5);
+    /* padding-top 对齐主卡 card-body 的 18px(=2.25×rhythm)，让"header→正文起始"间距统一 */
+    padding: calc(var(--rhythm) * 2.25) calc(var(--rhythm) * 1.5) calc(var(--rhythm) * 1.25);
   }
 
   .card.collapsed .card-summary-text {
@@ -203,10 +326,7 @@
     line-height: 1.6;
   }
 
-  .card.collapsed .card-header {
-    padding: calc(var(--rhythm) * 1.25) calc(var(--rhythm) * 1.5);
-    border-bottom: none;
-  }
+  /* Collapsed card header: SAME padding & border as hero, only interaction differs */
 
   /* ===== CARD ===== */
   .card {
@@ -242,10 +362,35 @@
   .card-header {
     padding: calc(var(--rhythm) * 2) calc(var(--rhythm) * 2.25);
     display: flex;
-    align-items: center;
-    gap: calc(var(--rhythm));
+    align-items: center;   /* outer: vertical center between left/right groups */
+    gap: 8px;
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
+    min-width: 0;
+    min-height: 52px;       /* ensure consistent height across hero & collapsed */
+  }
+
+  /* Left group: dot + name + (tag) + word-count → fill, internal gap=4
+     align-items: baseline so model name & word-count share the same baseline */
+  .header-left {
+    display: flex;
+    /* baseline 对齐：让 model-name (0.85rem) 与 word-count (0.72rem) 共享文字基线，
+       避免之前 align-items:center 导致的底线错开。
+       dot/tag 不是文字盒子，在下方分别用 transform/align-self 单独修正到
+       与模型名视觉中心对齐。 */
+    align-items: baseline;
+    gap: 4px;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  /* Right group: 主卡查看 / share-btn → hug */
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
   }
 
   /* Collapsed card header — no cursor, no expand-hint needed (click body to expand) */
@@ -260,15 +405,28 @@
   }
 
   .card-header .expand-hint {
-    margin-left: auto;
-    font-size: 0.68rem;
+    font-size: 0.72rem;
     color: var(--accent);
     font-weight: 500;
     flex-shrink: 0;
-    opacity: 0.7;
+    opacity: 0.8;
     transition: opacity 0.15s ease;
     white-space: nowrap;
     display: none; /* hidden by default */
+  }
+
+  /* "主卡查看" 后的细箭头指示符（› 单角引号，比 > 更细更轻） */
+  .card-header .expand-hint::after {
+    content: "›";
+    display: inline-block;
+    margin-left: 4px;
+    font-size: 1.1em;
+    line-height: 1;
+    vertical-align: baseline;
+    transition: transform 0.15s ease;
+  }
+  .card.collapsed .card-header:hover .expand-hint::after {
+    transform: translateX(2px);
   }
 
   /* Only show hint on collapsed (sidebar) cards */
@@ -290,12 +448,25 @@
     height: 9px;
     border-radius: 50%;
     flex-shrink: 0;
+    /* baseline 对齐下，dot 默认会落在文字基线上看起来偏低；
+       上提到模型名视觉中心（约 cap-height 的一半）。 */
+    align-self: center;
+    transform: translateY(-1px);
   }
 
   .model-name {
     font-weight: 600;
     font-size: 0.85rem;
     letter-spacing: 0.01em;
+    margin-right: 0;
+    /* Truncate with ellipsis when header is too narrow */
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    word-break: keep-all;
+    overflow-wrap: normal;
   }
 
   .recommended-tag {
@@ -303,17 +474,62 @@
     font-weight: 600;
     color: var(--gold);
     background: var(--gold-bg);
-    padding: 0.18em 0.6em;
+    padding: 2px 0.6em;
     border-radius: 12px;
     white-space: nowrap;
     letter-spacing: 0.02em;
     border: 1px solid var(--gold-border);
+    margin-right: 0;
+    flex-shrink: 0;
+    /* baseline 容器里整体居中到模型名视觉中心（不再 stretch 撑满）。 */
+    align-self: center;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
   }
 
   .word-count {
-    margin-left: auto;
     font-size: 0.72rem;
     color: var(--text-light);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* word-count now sits inside .header-left, immediately after model-name with gap=4 */
+
+  .header-share-btn {
+    display: none;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--text-light);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-family: inherit;
+  }
+
+  .card:not(.collapsed) .header-share-btn {
+    display: inline-flex;
+  }
+
+  .header-share-btn:hover {
+    color: var(--accent);
+    border-color: rgba(37, 99, 235, 0.3);
+    background: rgba(37, 99, 235, 0.04);
+  }
+
+  .header-share-btn svg {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
   }
 
   /* ===== CARD BODY — core reading area ===== */
@@ -353,6 +569,64 @@
   /* Full content wrapper — visible by default, hidden when card is collapsed */
   .card-full { display: block; }
 
+  /* Hero card (主卡) 折叠态：让 card-body 内部纵向 flex，
+     正文区贴顶、"展开按钮 + debate-panel" 贴底，
+     多余高度变成正文与按钮之间的呼吸感，而非按钮下方的死白。
+     仅作用于主卡：sidebar 副卡折叠态用的是 .card-summary-wrap，不走这条链。 */
+  .card:not(.collapsed) .card-body {
+    display: flex;
+    flex-direction: column;
+  }
+  .card:not(.collapsed) .card-body > .card-full {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+  .card:not(.collapsed) .card-full > .answer-section {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+  /* 折叠态：直接拿 full-answer 渲染，让真实内容把高度撑满到 sidebar 等高。
+     用 .answer-section.is-collapsed 作为折叠标记（默认就是这个状态）。
+     - .answer-content 隐藏（避免与 full-answer 内容重复）
+     - .full-answer 显示，max-height 由 JS 根据 sidebar 高度动态注入到 --collapsed-h，
+       配合 overflow:hidden 截断
+     - 底部用 mask 渐隐遮罩，告诉用户"下面还有"
+     - toggle 按钮在 .full-answer 之后，紧贴渐隐区下沿 */
+  /* 主卡 .answer-content（condensed 摘要）始终隐藏：
+     折叠/展开都直接拿 .full-answer 渲染，避免摘要把 H1 顶下去 475px。 */
+  .card:not(.collapsed) .card-full > .answer-section > .answer-content {
+    display: none;
+  }
+  .card:not(.collapsed) .answer-section.is-collapsed > .full-answer {
+    display: block;
+    max-height: 600px;
+    overflow: hidden;
+    position: relative;
+    border-top: none;
+    padding-top: 0;
+    margin-top: 0;
+    /* 底部 48px 渐隐到背景色，提示"被截断"，不能太长否则像留白 */
+    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent 100%);
+            mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent 100%);
+  }
+  /* 展开态：full-answer 自然高度，无遮罩、无顶部 divider，
+     首行紧贴主卡 header 下方，与右侧次卡 condensed 摘要顶部对齐。 */
+  .card:not(.collapsed) .answer-section:not(.is-collapsed) > .full-answer {
+    max-height: none;
+    overflow: visible;
+    -webkit-mask-image: none;
+            mask-image: none;
+    border-top: none;
+    padding-top: 0;
+    margin-top: 0;
+  }
+  /* full-answer 首个子元素去掉自带的 margin-top，避免再次拉开间距 */
+  .card:not(.collapsed) .answer-section:not(.is-collapsed) > .full-answer > *:first-child {
+    margin-top: 0;
+  }
+
   /* ===== ANSWER SECTION — condensed (default) + full (expandable) ===== */
   .answer-section {
     position: relative;
@@ -383,34 +657,74 @@
     margin-top: calc(var(--rhythm) * 1);
   }
 
-  .answer-toggle {
-    display: flex;
+  /* ========= 按钮基类 .btn-ghost =========
+     尺寸/字号/边框/交互一次定义，toggle 和 share 共享。
+     任何加入 action-row 的按钮都自动等高、等padding。 */
+  .btn-ghost {
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 4px;
-    width: 100%;
-    padding: calc(var(--rhythm) * 0.9);
+    gap: 5px;
+    height: 32px;
+    padding: 0 14px;
+    box-sizing: border-box;
+    font-family: inherit;
     font-size: 0.73rem;
     font-weight: 500;
-    color: var(--accent);
-    background: rgba(37, 99, 235, 0.03);
-    border: 1px solid rgba(37, 99, 235, 0.12);
+    line-height: 1;
+    letter-spacing: 0.01em;
+    color: var(--text-light);
+    background: transparent;
+    border: 1px solid var(--border);
     border-radius: 8px;
     cursor: pointer;
-    transition: all 0.15s ease;
-    letter-spacing: 0.01em;
+    white-space: nowrap;
+    transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  }
+  .btn-ghost:hover {
+    color: var(--accent);
+    border-color: rgba(37, 99, 235, 0.3);
+    background: rgba(37, 99, 235, 0.04);
+  }
+  .btn-ghost svg { width: 12px; height: 12px; flex-shrink: 0; display: block; }
+
+  /* 展开态：action-row 横向一分为二，左"收起回答"+ 右"分享此回答" */
+  .answer-action-row {
+    display: flex;
+    gap: 8px;
     margin-top: calc(var(--rhythm) * 1);
   }
+  .answer-action-row .answer-toggle { flex: 1; margin-top: 0; }
+  .answer-action-row .answer-share-btn { flex-shrink: 0; }
 
-  .answer-toggle:hover {
-    background: rgba(37, 99, 235, 0.06);
+  /* share 按钮：折叠态隐藏，只在展开后出现 */
+  .answer-share-btn { display: none; }
+  .answer-section:not(.is-collapsed) .answer-share-btn { display: inline-flex; }
+
+  /* ========= .answer-toggle 差异化 =========
+     基础尺寸继承 .btn-ghost，仅重写"折叠态"品牌色 */
+  .answer-toggle {
+    width: 100%;
     color: var(--accent);
+    background: rgba(37, 99, 235, 0.03);
+    border-color: rgba(37, 99, 235, 0.12);
   }
-
+  .answer-toggle:hover {
+    color: var(--accent);
+    background: rgba(37, 99, 235, 0.06);
+    border-color: rgba(37, 99, 235, 0.12);
+  }
+  /* 展开态：回到与 share 一致的中性灰 ghost，交互由 .btn-ghost:hover 接管 */
   .answer-toggle.expanded {
-    background: transparent;
     color: var(--text-light);
+    background: transparent;
     border-color: var(--border);
+  }
+  /* 收起态 hover：与 header-share-btn 风格一致——浅蓝边框 + 浅蓝底 + 蓝字 */
+  .answer-toggle.expanded:hover {
+    color: var(--accent);
+    border-color: rgba(37, 99, 235, 0.3);
+    background: rgba(37, 99, 235, 0.04);
   }
 
   .answer-section.collapsed .answer-content {
@@ -845,25 +1159,26 @@
   .footer {
     text-align: center;
     margin-top: calc(var(--rhythm) * 6);
-    color: var(--text-light);
+    color: #c4c4c0;
     font-size: 0.76rem;
   }
 
   /* ===== RESPONSIVE ===== */
-  @media (max-width: 1280px) {
+  @media (max-width: 1080px) {
     .grid { flex-direction: column; }
-    .card.recommended { flex: none; width: 100%; }
+    .card:not(.collapsed) { flex: none; width: 100%; }
     .sidebar { flex-direction: row; flex-wrap: wrap; max-width: none; }
     .card.collapsed { flex: 1; min-width: 200px; }
   }
   @media (max-width: 720px) {
     body { padding: calc(var(--rhythm) * 3); }
     .grid { flex-direction: column; }
-    .card.recommended { flex: none; width: 100%; }
+    .card:not(.collapsed) { flex: none; width: 100%; }
     .sidebar { flex-direction: column; max-width: none; }
     .card.collapsed { width: 100%; }
-    .question { font-size: 1.05rem; padding: calc(var(--rhythm) * 2); }
-    .roster { justify-content: flex-start; }
+    .question { font-size: 1.08rem; padding: 0; }
+    .hero { padding: calc(var(--rhythm) * 2); border-radius: 14px; }
+    .roster { justify-content: center; }
     /* Mobile: hero card expanded, others truly collapsed */
     .card.collapsed .card-summary-wrap { 
       max-height: 120px; 
@@ -871,161 +1186,282 @@
     }
   }
 
-  /* ===== SHARE BUTTON ===== */
-  .share-btn {
+  /* ===== BACK TO TOP =====
+     位置规范：position: fixed 悬浮在视口；水平右沿对齐 body 内容右沿（= 侧栏右沿）；
+     垂直离视口底 24px。滚过一屏后渐显。
+     right 直接用 body 的水平 padding（calc(var(--rhythm) * 4)），无需 JS 计算。 */
+  .back-to-top {
+    position: fixed;
+    right: calc(var(--rhythm) * 4);
+    /* bottom = body padding-bottom (40px) + footer 高度 (~22px) + footer margin-top (48px) ≈ 110px
+       让按钮中心略对齐主卡底沿那条视觉线 */
+    bottom: 110px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    color: var(--text-light);
+    padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    width: 100%;
-    padding: 10px 0;
-    font-size: 0.78rem;
-    font-weight: 500;
-    color: var(--text-light);
-    background: transparent;
-    border: none;
-    border-top: 1px solid var(--border);
     cursor: pointer;
-    transition: background 0.15s ease, color 0.15s ease;
-    letter-spacing: 0.03em;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
+    opacity: 0;
+    transform: translateY(4px);
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    z-index: 50;
+    -webkit-tap-highlight-color: transparent;
+    /* 用 ↑（U+2191）字符，主流字体里都有，比 › 稳定 */
+    font-size: 1.1rem;
+    line-height: 1;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
   }
-  .share-btn:hover {
-    background: rgba(0,0,0,0.03);
+  .back-to-top-icon {
+    display: inline-block;
+    /* ↑ 字符在大多数字体里 baseline 偏低，flex 居中后视觉偏下，margin-bottom 1px 上推补偿 */
+    margin-bottom: 1px;
+    transition: transform 0.15s ease;
+  }
+
+  .back-to-top.visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .back-to-top:hover {
+    background: rgba(37, 99, 235, 0.04);
+    border-color: rgba(37, 99, 235, 0.3);
     color: var(--accent);
   }
-  .share-btn svg {
-    width: 14px;
-    height: 14px;
-    flex-shrink: 0;
+  .back-to-top:hover .back-to-top-icon {
+    transform: translateY(-2px);
   }
 
-  /* ===== TOAST ===== */
-  .toast {
-    position: fixed;
-    bottom: 32px;
-    left: 50%;
-    transform: translateX(-50%) translateY(80px);
-    background: #1a1a2e;
-    color: #fff;
-    padding: 10px 20px;
-    border-radius: 8px;
-    font-size: 0.82rem;
-    font-weight: 500;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.18);
-    opacity: 0;
-    transition: transform 0.35s cubic-bezier(.4,0,.2,1), opacity 0.35s ease;
-    z-index: 9999;
-    pointer-events: none;
-    white-space: nowrap;
+  @media (max-width: 720px) {
+    .back-to-top { right: calc(var(--rhythm) * 3); bottom: 12px; width: 36px; height: 36px; font-size: 1rem; }
   }
-  .toast.show {
-    transform: translateX(-50%) translateY(0);
-    opacity: 1;
-  }
-
 </style>
 
 <!-- MathJax for LaTeX rendering -->
-<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-
-<script>
-// === Share button handlers ===
-document.querySelectorAll('.share-btn').forEach(function(btn) {
-  btn.addEventListener('click', function(e) {
-    e.stopPropagation();
-    var modelName = this.getAttribute('data-model');
-    var hash = '#model=' + encodeURIComponent(modelName);
-    var url = window.location.href.split('#')[0] + hash;
-
-    if (navigator.share) {
-      navigator.share({
-        title: document.title + ' — ' + modelName,
-        text: '查看 ' + modelName + ' 的回答',
-        url: url
-      }).catch(function() {});
-      return;
-    }
-
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(url).then(function() {
-        showToast('链接已复制，可以粘贴分享 ✓');
-      }).catch(function() { fallbackCopy(url); });
-    } else {
-      fallbackCopy(url);
-    }
-  });
-});
-
-function fallbackCopy(text) {
-  var ta = document.createElement('textarea');
-  ta.value = text;
-  ta.style.position = 'fixed';
-  ta.style.left = '-9999px';
-  document.body.appendChild(ta);
-  ta.select();
-  try {
-    document.execCommand('copy');
-    showToast('链接已复制，可以粘贴分享 ✓');
-  } catch(e) {
-    showToast('请手动复制链接：' + text);
-  }
-  document.body.removeChild(ta);
-}
-
-function showToast(msg) {
-  var t = document.getElementById('toast');
-  if (!t) {
-    t = document.createElement('div');
-    t.id = 'toast';
-    t.className = 'toast';
-    document.body.appendChild(t);
-  }
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(function() { t.classList.remove('show'); }, 2500);
-}
-
-// === Hash-based deep linking ===
-function expandCardByModel(modelName) {
-  var cards = document.querySelectorAll('.card');
-  for (var i = 0; i < cards.length; i++) {
-    if (cards[i].getAttribute('data-model') === modelName) {
-      if (cards[i].classList.contains('collapsed')) {
-        promoteToHero(cards[i]);
-      }
-      var full = cards[i].querySelector('.full-answer');
-      var btn = cards[i].querySelector('.answer-toggle');
-      if (full && full.style.display === 'none') {
-        full.style.display = 'block';
-        if (btn) {
-          btn.classList.add('expanded');
-          var wc = btn.getAttribute('data-wc') || '';
-          btn.innerHTML = '<span class="answer-toggle-icon" style="transform:rotate(180deg);display:inline-block">▲</span> 收起完整回答';
-        }
-      }
-      setTimeout(function() {
-        cards[i].scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 100);
-      return;
-    }
-  }
-}
-
-(function() {
-  var hash = window.location.hash;
-  if (hash && hash.indexOf('model=') !== -1) {
-    var modelName = decodeURIComponent(hash.split('model=')[1]);
-    setTimeout(function() { expandCardByModel(modelName); }, 500);
-  }
-})();
-
-</script>
+<script id="MathJax-script" async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 <script>
 // MoCompare Card Swap Logic:
 // - Clicking a SIDEBAR (collapsed) card → promotes it to HERO position
 // - HERO card is NOT interactive
 document.addEventListener('DOMContentLoaded', function() {
   var grid = document.querySelector('.grid');
+
+  // === Mode switch (Debate / Compare) ===
+  (function initModeSwitch() {
+    var STORAGE_KEY = 'moco-mode';
+    var btns = document.querySelectorAll('.mode-switch-btn');
+    if (!btns.length) return;
+    var saved = null;
+    try { saved = localStorage.getItem(STORAGE_KEY); } catch(e) {}
+    var initial = saved === 'compare' ? 'compare' : 'debate';
+    applyMode(initial);
+    btns.forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        applyMode(btn.getAttribute('data-mode'));
+      });
+    });
+    function applyMode(mode) {
+      document.body.classList.toggle('mode-compare', mode === 'compare');
+      document.body.classList.toggle('mode-debate', mode === 'debate');
+      btns.forEach(function(b) {
+        var on = b.getAttribute('data-mode') === mode;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      try { localStorage.setItem(STORAGE_KEY, mode); } catch(e) {}
+    }
+  })();
+
+  // === Share button handler (event delegation — works for cards swapped later) ===
+  function showToast(msg) {
+    var t = document.getElementById('moco-toast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'moco-toast';
+      t.style.cssText = 'position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(80px);background:#1a1a2e;color:#fff;padding:10px 20px;border-radius:8px;font-size:0.82rem;font-weight:500;box-shadow:0 4px 24px rgba(0,0,0,0.18);opacity:0;transition:transform .35s cubic-bezier(.4,0,.2,1),opacity .35s ease;z-index:9999;pointer-events:none;white-space:nowrap;';
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.transform = 'translateX(-50%) translateY(0)';
+    t.style.opacity = '1';
+    clearTimeout(t._hideTimer);
+    t._hideTimer = setTimeout(function() {
+      t.style.transform = 'translateX(-50%) translateY(80px)';
+      t.style.opacity = '0';
+    }, 2500);
+  }
+
+  function copyToClipboard(text, okMsg) {
+    okMsg = okMsg || '已复制 ✓';
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;left:-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); showToast(okMsg); }
+      catch (e) { showToast('复制失败，请手动复制'); }
+      document.body.removeChild(ta);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function() { showToast(okMsg); }).catch(fallback);
+    } else {
+      fallback();
+    }
+  }
+
+  // ========== 分享：收集卡片数据 → 生成 MDX → 复制到剪贴板 ==========
+  // 设计意图：点击「分享此回答」后，把当前卡片的结构化内容打包成 MDX 文本，
+  // 用户粘给 AI，由 AI 调 MCP 追加写入「Moco 档案」腾讯文档。绕开后端存储。
+
+  // HTML → Markdown 轻量转换（只处理 .full-answer 实际出现的标签）
+  function htmlToMarkdown(root) {
+    if (!root) return '';
+    var lines = [];
+    function inline(node) {
+      // 递归把节点转成行内 Markdown 文本
+      if (node.nodeType === 3) return node.nodeValue.replace(/\s+/g, ' ');
+      if (node.nodeType !== 1) return '';
+      var tag = node.tagName.toLowerCase();
+      var inner = Array.prototype.map.call(node.childNodes, inline).join('');
+      if (tag === 'strong' || tag === 'b') return '**' + inner + '**';
+      if (tag === 'em' || tag === 'i') return '*' + inner + '*';
+      if (tag === 'code') return '`' + inner + '`';
+      if (tag === 'a') return '[' + inner + '](' + (node.getAttribute('href') || '') + ')';
+      if (tag === 'br') return '\n';
+      return inner;
+    }
+    function block(node, listPrefix) {
+      if (node.nodeType === 3) {
+        var t = node.nodeValue.trim();
+        if (t) lines.push(t);
+        return;
+      }
+      if (node.nodeType !== 1) return;
+      var tag = node.tagName.toLowerCase();
+      if (/^h[1-6]$/.test(tag)) {
+        var level = parseInt(tag[1], 10);
+        lines.push('\n' + '#'.repeat(level) + ' ' + inline(node).trim() + '\n');
+      } else if (tag === 'p') {
+        lines.push(inline(node).trim());
+        lines.push('');
+      } else if (tag === 'hr') {
+        lines.push('\n---\n');
+      } else if (tag === 'ul' || tag === 'ol') {
+        Array.prototype.forEach.call(node.children, function(li, i) {
+          if (li.tagName.toLowerCase() !== 'li') return;
+          var prefix = tag === 'ol' ? (i + 1) + '. ' : '- ';
+          lines.push(prefix + inline(li).trim());
+        });
+        lines.push('');
+      } else if (tag === 'blockquote') {
+        var inner = [];
+        Array.prototype.forEach.call(node.childNodes, function(c) {
+          if (c.nodeType === 1) inner.push(inline(c).trim());
+          else if (c.nodeType === 3 && c.nodeValue.trim()) inner.push(c.nodeValue.trim());
+        });
+        inner.filter(Boolean).forEach(function(line) { lines.push('> ' + line); });
+        lines.push('');
+      } else if (tag === 'table') {
+        var rows = node.querySelectorAll('tr');
+        if (!rows.length) return;
+        rows.forEach(function(tr, ri) {
+          var cells = tr.querySelectorAll('th,td');
+          var row = Array.prototype.map.call(cells, function(c) { return inline(c).trim().replace(/\|/g, '\\|'); }).join(' | ');
+          lines.push('| ' + row + ' |');
+          if (ri === 0) {
+            lines.push('| ' + Array.prototype.map.call(cells, function() { return '---'; }).join(' | ') + ' |');
+          }
+        });
+        lines.push('');
+      } else if (tag === 'pre') {
+        lines.push('```');
+        lines.push(node.textContent.replace(/\n+$/, ''));
+        lines.push('```');
+        lines.push('');
+      } else {
+        // 兜底：其他容器递归
+        Array.prototype.forEach.call(node.childNodes, function(c) { block(c); });
+      }
+    }
+    Array.prototype.forEach.call(root.childNodes, function(c) { block(c); });
+    // 合并多余空行
+    return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  }
+
+  function collectCardPayload(card) {
+    var modelName = (card.querySelector('.model-name') || {}).textContent || '';
+    var wordCount = (card.querySelector('.word-count') || {}).textContent || '';
+    var isRecommended = card.classList.contains('recommended');
+    var summaryEl = card.querySelector('.card-summary-text .condensed-answer');
+    var summary = summaryEl ? htmlToMarkdown(summaryEl) : '';
+    var fullEl = card.querySelector('.full-answer');
+    var fullMd = fullEl ? htmlToMarkdown(fullEl) : '';
+    var question = (document.querySelector('.question') || {}).textContent || '';
+    var ts = new Date();
+    var pad = function(n) { return n < 10 ? '0' + n : '' + n; };
+    var tsStr = ts.getFullYear() + '-' + pad(ts.getMonth() + 1) + '-' + pad(ts.getDate())
+              + ' ' + pad(ts.getHours()) + ':' + pad(ts.getMinutes());
+    return {
+      modelName: modelName.trim(),
+      wordCount: wordCount.trim(),
+      isRecommended: isRecommended,
+      question: question.trim(),
+      summary: summary,
+      fullMd: fullMd,
+      timestamp: tsStr
+    };
+  }
+
+  function buildMdx(p) {
+    // 结构：# 问题（唯一 Heading，档案大纲侧栏的全部锚点——用户按问题索引文档）
+    //       模型·时间·字数（普通段落，meta 信息不进大纲）
+    //       核心观点（加粗段落）
+    //       答案正文（原 Markdown 里所有 #~###### 统一转加粗段落，不再污染大纲）
+    // 设计原则：尊重原 Markdown 的语义层级，不复刻 HTML 视觉；档案靠问题锚点检索。
+    var star = p.isRecommended ? ' ⭐' : '';
+    // 把答案内部的所有 Markdown 标题（^#+ ）转成加粗段落，防止它们出现在大纲侧栏
+    var bodyMd = (p.fullMd || '').replace(/^#{1,6}\s+(.+)$/gm, '**$1**');
+    var parts = [];
+    parts.push('# ' + p.question);
+    parts.push('');
+    parts.push(p.modelName + star + '　·　' + p.timestamp + '　·　' + p.wordCount);
+    parts.push('');
+    if (p.summary) {
+      // 用 Callout 浅黄高亮块强调核心观点——视觉权重比正文还重，和扉页灰色 BlockQuote 拉开差异
+      // 腾讯文档 Callout 不认 type="info/warning"，必须直接传 blockColor/borderColor 属性
+      parts.push('<Callout blockColor="yellow" borderColor="yellow">');
+      parts.push('**核心观点**：' + p.summary);
+      parts.push('</Callout>');
+      parts.push('');
+    }
+    parts.push(bodyMd);
+    parts.push('');
+    parts.push('---');
+    parts.push('');
+    return parts.join('\n');
+  }
+
+  document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.header-share-btn, .answer-share-btn');
+    if (!btn) return;
+    e.stopPropagation();
+    var card = btn.closest('.card');
+    if (!card) return;
+    var payload = collectCardPayload(card);
+    var mdx = buildMdx(payload);
+    copyToClipboard(mdx, '已复制，粘给 AI 存档 📋');
+  });
 
   function getHero() { return grid.querySelector('.card:not(.collapsed)'); }
   function getSidebar() { return grid.querySelector('.sidebar'); }
@@ -1035,15 +1471,16 @@ document.addEventListener('DOMContentLoaded', function() {
     var sidebar = getSidebar();
 
     // Demote existing hero → collapsed, move to sidebar
+    // 注意：不动 .recommended class——它只代表"是否为推荐回答"（数据状态），
+    // 与"是否在主卡位"（布局状态 = 是否有 .collapsed）解耦。
+    // 布局走 .card:not(.collapsed)，金边/金色高光走 .card.recommended，互不干扰。
     if (hero && hero !== card) {
       hero.classList.add('collapsed');
-      hero.classList.remove('recommended');
       if (sidebar) sidebar.appendChild(hero);
     }
 
     // Promote clicked card → full expanded, move to hero slot
     card.classList.remove('collapsed');
-    card.classList.add('recommended');
     if (sidebar) grid.insertBefore(card, sidebar);
 
     // Scroll to top of new hero smoothly
@@ -1062,23 +1499,55 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  // --- Answer section: show/hide full original answer ---
+  // --- Answer section: collapsed (mask preview of full-answer) ↔ expanded ---
+  // 折叠态：.answer-section 加 .is-collapsed 类，CSS 让 .full-answer 截断 + 渐隐遮罩；
+  // 展开态：移除 .is-collapsed，full-answer 自然展开，按钮文案变 "收起完整回答 ▲"，
+  //         按钮移到 .full-answer 之后（贴在挑战面板之上）。
+  document.querySelectorAll('.answer-section').forEach(function(section) {
+    var fullAnswer = section.querySelector('.full-answer');
+    var btn = section.querySelector('.answer-toggle');
+    if (!fullAnswer || !btn) return;
+    // 初始：折叠 + full-answer 显示（受 CSS 截断 + 遮罩控制）
+    section.classList.add('is-collapsed');
+    fullAnswer.style.display = '';
+    // 找卡片对应的模型名，用于 share 按钮
+    var card = section.closest('.card');
+    var headerShare = card ? card.querySelector('.header-share-btn') : null;
+    var modelName = headerShare ? headerShare.getAttribute('data-model') : '';
+    // 构造 action row：左 toggle + 右 share（展开后显示）
+    var row = document.createElement('div');
+    row.className = 'answer-action-row';
+    var shareBtn = document.createElement('button');
+    shareBtn.className = 'btn-ghost answer-share-btn';
+    shareBtn.setAttribute('data-model', modelName || '');
+    shareBtn.setAttribute('title', '分享此回答');
+    shareBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>分享此回答';
+    // 保证 toggle 也应用按钮基类，与 share 统一尺寸
+    btn.classList.add('btn-ghost');
+    row.appendChild(btn);
+    row.appendChild(shareBtn);
+    section.appendChild(row);
+  });
+
   document.querySelectorAll('.answer-toggle').forEach(function(btn) {
     btn.addEventListener('click', function(e) {
       e.stopPropagation();
-      var fullAnswer = this.nextElementSibling; // .full-answer
-      var isHidden = fullAnswer.style.display === 'none' || !fullAnswer.style.display;
+      var section = this.closest('.answer-section');
+      if (!section) return;
+      var fullAnswer = section.querySelector('.full-answer');
+      if (!fullAnswer) return;
       var wc = this.getAttribute('data-wc') || '';
-      if (isHidden) {
-        fullAnswer.style.display = 'block';
+      var isCollapsed = section.classList.contains('is-collapsed');
+      if (isCollapsed) {
+        // 展开：直接切类，不做任何滚动，避免页面跳动
+        section.classList.remove('is-collapsed');
         this.classList.add('expanded');
-        this.innerHTML = '<span class="answer-toggle-icon" style="transform:rotate(180deg);display:inline-block">▲</span> 收起完整回答';
-        // Smooth scroll into view
-        fullAnswer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        this.innerHTML = '收起回答 · ' + wc + ' 字';
       } else {
-        fullAnswer.style.display = 'none';
+        // 收起：同样不做滚动，按钮保持在原位由布局自然回流
+        section.classList.add('is-collapsed');
         this.classList.remove('expanded');
-        this.innerHTML = '<span class="answer-toggle-icon">▼</span> 展开完整回答（' + wc + ' 字）';
+        this.innerHTML = '展开回答 · ' + wc + ' 字';
       }
     });
   });
@@ -1116,21 +1585,24 @@ document.addEventListener('DOMContentLoaded', function() {
 </head>
 <body>
 
-<div class="header">
-  <div class="header-label">MoCompare · {{TIMESTAMP}} <span class="debate-badge">⚔️ Debate Mode</span></div>
+<div class="hero">
+  <div class="header-label">MoCompare · {{TIMESTAMP}} <span class="mode-switch" role="tablist" aria-label="模式切换"><button type="button" class="mode-switch-btn active" data-mode="debate" role="tab" aria-selected="true">⚔️ Debate</button><button type="button" class="mode-switch-btn" data-mode="compare" role="tab" aria-selected="false">⚖️ Compare</button></span></div>
   <div class="question">{{QUESTION}}</div>
+  <div class="hero-divider"></div>
+  <div class="roster-section">
+    <div class="roster-title">参与模型</div>
+    <div class="roster">
+    {{ROSTER_ITEMS}}
+  </div>
+  </div>
 </div>
-
-<div class="roster">
-  {{ROSTER_ITEMS}}
-</div>
-
-{{DEBATE_SUMMARY}}
 
 <div class="winner-banner">
   <span class="winner-icon">🏆</span>
   <span class="winner-text">推荐回答：<span class="winner-model-name">{{WINNER_MODEL}}</span> — {{WINNER_REASON}}</span>
 </div>
+
+{{DEBATE_SUMMARY}}
 
 <div class="grid">
   {{CARDS}}
@@ -1139,6 +1611,37 @@ document.addEventListener('DOMContentLoaded', function() {
 <div class="footer">
   Generated by MoCompare · {{TIMESTAMP}} · ⚔️ Cross-Model Debate Enabled
 </div>
+
+<button class="back-to-top" id="backToTop" aria-label="回到顶部" title="回到顶部"><span class="back-to-top-icon">↑</span></button>
+
+<script>
+(function () {
+  var btn = document.getElementById('backToTop');
+  if (!btn) return;
+
+  // 显示时机：滚过一屏后渐显
+  function onScroll() {
+    if (window.scrollY > window.innerHeight) btn.classList.add('visible');
+    else btn.classList.remove('visible');
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  // 自定义快速回顶：固定 300ms，ease-out，避免浏览器原生 smooth 在长文档下过慢
+  btn.addEventListener('click', function () {
+    var startY = window.scrollY;
+    if (startY === 0) return;
+    var duration = 300;
+    var startT = performance.now();
+    function step(now) {
+      var t = Math.min(1, (now - startT) / duration);
+      var eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
+      window.scrollTo(0, startY * (1 - eased));
+      if (t < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  });
+  onScroll();
+})();
+</script>
 
 </body>
 </html>

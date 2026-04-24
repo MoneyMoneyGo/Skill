@@ -1,6 +1,6 @@
 ---
 name: moco
-description: "moco — Multi-model comparison with debate. Send the same question to 4 AI models, let them read each other's answers, challenge each other on logic/factual errors, and rebut once. The best answer is auto-selected and presented in a beautiful multimodal HTML page. Trigger when the user mentions 'moco', 'MoCompare', 'compare models', 'ask multiple models', 'multi-model', 'model comparison', 'PK', 'battle', '多模型', '模型对比', '对比回答', '同时问', '几个模型一起回答', '辩论', 'challenge', or wants to see how different AI models respond to the same prompt with cross-model critique."
+description: "moco 多模型辩论 — 让 4 个 AI 同台答题、互相找错、各自反驳，再综合评分挑出最佳答案。适合方案评估、选型决策、避免单模型偏见。触发：moco、MoCompare、多模型对比、模型 PK、模型辩论、对比回答、几个模型一起答、model debate、compare models。"
 ---
 
 # moco — Multi-Model Compare & Debate
@@ -183,17 +183,17 @@ Pick the highest-scoring response as "Recommended".
 Build an HTML page using `assets/compare-template.html` as base. The page MUST include both initial answers AND debate content.
 
 **HTML generation steps:**
-1. Read template from `assets/compare-template.html`
-2. Convert each model's Markdown response (answer + challenges + rebuttals) to HTML via `scripts/md2html.py`
-3. Inject model cards into the grid section — each card now has TWO sections:
-   - **Answer section**: The model's initial answer (main body)
-   - **Debate section** (if applicable):
-     - **Challenges Issued**: Shows who this model challenged and why
-     - **Rebuttals Given**: Shows challenges received and this model's rebuttal
-4. Add recommended badge to winning card
-5. Write final HTML to workspace as `moco-{timestamp}.html`
-6. Present with `preview_url`
-7. Deliver via `deliver_attachments`
+1. Write the consolidated debate data into a JSON file at the workspace, e.g. `debate-data.json`. Required schema: `{question, timestamp, models[], winner_model, winner_reason}`. Each model entry includes `name`, `color`, `answer`, optional `core_thesis`, and `challenges_issued` / `challenges_received` arrays.
+2. Run the generator:
+   ```bash
+   python3 <skill_root>/scripts/_gen_moco.py \
+     --data <workspace>/debate-data.json \
+     --output <workspace>/moco-{timestamp}.html
+   ```
+   The generator resolves the template (`assets/compare-template.html`) and `md2html.py` automatically from the skill directory. Override with `--template`, `--md2html`, or `--python` only when needed.
+3. The generator handles: Markdown→HTML conversion via `scripts/md2html.py`, recommended-card highlighting, and debate panel composition.
+4. Present the resulting HTML with `preview_url`.
+5. Deliver via `deliver_attachments`.
 
 **Page layout must show**:
 - Header: original question + timestamp + "⚔️ Debate Mode" badge
@@ -231,6 +231,7 @@ Use these colors for model badges:
 ## Resources
 
 ### scripts/
+- `_gen_moco.py`: Main HTML generator. Reads a `debate-data.json` and renders the final `moco-{timestamp}.html` using the template and `md2html.py`. CLI: `--data`, `--output` (required); `--template`, `--md2html`, `--python` (optional).
 - `md2html.py`: Lightweight Markdown-to-HTML converter supporting headings, lists, code blocks, tables, blockquotes, bold/italic, links, images, and math notation.
 
 ### assets/

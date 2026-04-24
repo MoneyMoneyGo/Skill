@@ -1,0 +1,2083 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MoCompare</title>
+<style>
+  :root {
+    --bg: #f5f5f4;
+    --surface: #ffffff;
+    --border: #e5e5e3;
+    --border-strong: #d4d4d2;
+    --text: #1c1c1c;
+    --text-dim: #787874;
+    --text-light: #a0a09c;
+    --accent: #2563eb;
+    --gold: #b45309;
+    --gold-bg: rgba(180, 83, 9, 0.06);
+    --gold-border: rgba(180, 83, 9, 0.32);
+    --challenge-red: #dc2626;
+    --challenge-red-bg: rgba(220, 38, 38, 0.04);
+    --challenge-red-border: rgba(220, 38, 38, 0.15);
+    --rebuttal-green: #16a34a;
+    --rebuttal-green-bg: rgba(22, 163, 74, 0.04);
+    --rebuttal-green-border: rgba(22, 163, 74, 0.15);
+    --code-bg: #f0f0ee;
+    --pre-bg: #f7f7f6;
+
+    /* Typography scale */
+    --font: -apple-system, "SF Pro Text", "Helvetica Neue", sans-serif;
+    --mono: "SF Mono", "Fira Code", "Consolas", monospace;
+
+    /* Spacing scale — single source of truth */
+    --rhythm: 8px;          /* legacy base, do not use directly */
+    --space-xs: 4px;        /* 0.5x */
+    --space-s: 8px;         /* 1x  — base unit */
+    --space-m: 12px;        /* 1.5x */
+    --space-l: 20px;        /* 2.5x */
+    --space-xl: 32px;       /* 4x */
+    --space-2xl: 48px;      /* 6x */
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.85;
+    min-height: 100vh;
+    padding: calc(var(--rhythm) * 5) calc(var(--rhythm) * 4);
+    letter-spacing: 0.015em;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ===== HERO (header + question + roster as one unit) ===== */
+  .hero {
+    max-width: 880px;
+    margin: 0 auto calc(var(--rhythm) * 3);
+    padding: calc(var(--rhythm) * 1.5) calc(var(--rhythm) * 2) calc(var(--rhythm) * 2);
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    text-align: center;
+  }
+
+  .header-label {
+    font-size: 0.72rem;
+    color: var(--text-light);
+    margin-bottom: calc(var(--rhythm) * 1.5);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: calc(var(--rhythm));
+    flex-wrap: wrap;
+  }
+
+  .debate-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(var(--rhythm) / 2);
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: var(--challenge-red);
+    background: var(--challenge-red-bg);
+    padding: 0.2em 0.65em;
+    border-radius: 20px;
+    border: 1px solid var(--challenge-red-border);
+    margin-left: 0;
+    letter-spacing: 0.04em;
+    vertical-align: middle;
+  }
+
+  /* ===== MODE SWITCH (segmented control) ===== */
+  .mode-switch {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(0,0,0,0.04);
+    border-radius: 20px;
+    padding: 2px;
+    margin-left: 0;
+    gap: 0;
+  }
+
+  .mode-switch-btn {
+    appearance: none;
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--text-light);
+    padding: 0.5em 1em;
+    border-radius: 18px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    line-height: 1;
+  }
+
+  .mode-switch-btn:hover {
+    color: var(--text);
+  }
+
+  .mode-switch-btn.active {
+    background: var(--surface);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 0 rgba(0,0,0,0.02);
+  }
+
+  .mode-switch-btn[data-mode="debate"].active {
+    color: var(--challenge-red);
+  }
+
+  .mode-switch-btn[data-mode="compare"].active {
+    color: var(--accent);
+  }
+
+  /* ===== COMPARE MODE: hide debate-only content (challenges, rebuttals, debate summary)
+     Keep winner-banner: 🏆 recommended answer + reason is core comparison info, not debate. */
+  body.mode-compare .debate-panel,
+  body.mode-compare .debate-summary {
+    display: none !important;
+  }
+
+  /* Visual compensation: in Compare mode, winner-banner sits directly on top of grid
+     (实色块紧挨实色块), 12px feels too cramped without the airy debate-summary buffer.
+     Bump margin to 4×rhythm (32px) so the gap reads as "open" like Debate mode. */
+  body.mode-compare .winner-banner {
+    margin-bottom: calc(var(--rhythm) * 4);
+  }
+
+  /* Debate mode: debate-summary → grid 也用同样的 32px，让"辩论结果块→答案卡"
+     的呼吸感和 Compare 模式的"winner-banner→答案卡"一致。
+     winner-banner→debate-summary 之间保留 12px（轻量元素相邻，紧凑合理）。 */
+  body.mode-debate .debate-summary {
+    margin-bottom: calc(var(--rhythm) * 4);
+  }
+
+  .question {
+    font-size: 1.3rem;
+    font-weight: 600;
+    line-height: 1.6;
+    color: var(--text);
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    display: block;
+    max-width: 720px;
+    margin: 0 auto;
+    letter-spacing: 0.005em;
+  }
+
+  /* Hero divider */
+  .hero-divider {
+    height: 1px;
+    background: var(--border);
+    margin: calc(var(--rhythm) * 2) auto calc(var(--rhythm) * 1.5);
+    max-width: 160px;
+    opacity: 0.6;
+  }
+
+  /* ===== ROSTER BAR (now inside hero) ===== */
+  .roster-section {
+    margin: 0;
+    text-align: center;
+  }
+
+  .roster-title {
+    font-size: 0.68rem;
+    font-weight: 500;
+    color: var(--text-light);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-bottom: calc(var(--rhythm) * 1);
+  }
+
+  .roster {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: calc(var(--rhythm) * 2.5);
+    row-gap: calc(var(--rhythm) * 1);
+  }
+
+  .roster-item {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(var(--rhythm) / 2);
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    font-size: 0.82rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    color: var(--text);
+  }
+
+  .roster-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ===== WINNER BANNER ===== */
+  .winner-banner {
+    max-width: 1440px;
+    margin: 0 auto calc(var(--rhythm) * 1.5);
+    padding: calc(var(--rhythm) * 2) calc(var(--rhythm) * 3);
+    background: var(--gold-bg);
+    border: 1px solid var(--gold-border);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: calc(var(--rhythm));
+  }
+
+  .winner-icon { font-size: 1.15rem; flex-shrink: 0; }
+
+  .winner-text {
+    font-size: 0.88rem;
+    line-height: 1.55;
+    color: var(--text-dim);
+  }
+
+  .winner-model-name {
+    font-weight: 700;
+    color: var(--gold);
+  }
+
+  /* ===== DEBATE SUMMARY STRIP =====
+     Same shape & rhythm as winner-banner, but de-emphasized
+     (transparent bg, dashed border, neutral text). */
+  .debate-summary {
+    max-width: 1440px;
+    margin: 0 auto calc(var(--rhythm) * 1.5);
+    padding: calc(var(--rhythm) * 2) calc(var(--rhythm) * 3);
+    background: transparent;
+    border: 1px dashed var(--border-strong);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: calc(var(--rhythm));
+  }
+
+  .debate-summary-icon { font-size: 1.15rem; flex-shrink: 0; }
+
+  .debate-summary-text {
+    font-size: 0.88rem;
+    line-height: 1.55;
+    color: var(--text-dim);
+  }
+
+  .debate-summary-text strong { color: var(--text); font-weight: 700; }
+
+  /* ===== GRID — hero + sidebar layout ===== */
+  .grid {
+    display: flex;
+    gap: var(--space-m);
+    max-width: 1440px;
+    margin: 0 auto;
+    /* stretch: 让主卡高度自动 ≥ sidebar 总高度，避免主卡正文短时下方留大白
+       (主卡是 flex column，card-body flex:1 会自动吃满拉伸出来的空间)。
+       折叠/切换内容时同样保持视觉平衡。 */
+    align-items: stretch;
+  }
+
+  /* Hero card (主卡位) — fills main column, no width cap.
+     注意：选择器只看是否 .collapsed，不看 .recommended——
+     "在主卡位" 是布局状态，"是推荐回答" 是数据状态，两者解耦。
+     被切到次卡的推荐卡 .recommended 还在（仍有金边），
+     当前主卡位的卡可能根本就不是推荐。 */
+  .card:not(.collapsed) {
+    flex: 1.65;
+    min-width: 0;
+  }
+
+  /* Sidebar wrapper for collapsed cards */
+  .sidebar {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-m);
+    min-width: 240px;
+    max-width: 360px;
+  }
+
+  .card.collapsed .card-summary-wrap {
+    /* padding-top 对齐主卡 card-body 的 18px(=2.25×rhythm)，让"header→正文起始"间距统一 */
+    padding: calc(var(--rhythm) * 2.25) calc(var(--rhythm) * 1.5) calc(var(--rhythm) * 1.25);
+  }
+
+  .card.collapsed .card-summary-text {
+    font-size: 0.8rem;
+    line-height: 1.6;
+  }
+
+  /* Collapsed card header: SAME padding & border as hero, only interaction differs */
+
+  /* ===== CARD ===== */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    transition: box-shadow 0.2s ease;
+  }
+
+  .card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+  .card.recommended {
+    border-color: var(--gold-border);
+    box-shadow: 0 2px 10px rgba(180, 83, 9, 0.08);
+  }
+  .card.recommended::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+
+  /* Collapsed card — only show summary */
+  .card.collapsed .card-full { display: none; }
+  .card.collapsed .card-summary-wrap { display: block; }
+  .card:not(.collapsed) .card-summary-wrap { display: none !important; }
+
+  .card-header {
+    padding: calc(var(--rhythm) * 2) calc(var(--rhythm) * 2.25);
+    display: flex;
+    align-items: center;   /* outer: vertical center between left/right groups */
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    min-width: 0;
+    min-height: 52px;       /* ensure consistent height across hero & collapsed */
+  }
+
+  /* Left group: dot + name + (tag) + word-count → fill, internal gap=4
+     align-items: baseline so model name & word-count share the same baseline */
+  .header-left {
+    display: flex;
+    /* baseline 对齐：让 model-name (0.85rem) 与 word-count (0.72rem) 共享文字基线，
+       避免之前 align-items:center 导致的底线错开。
+       dot/tag 不是文字盒子，在下方分别用 transform/align-self 单独修正到
+       与模型名视觉中心对齐。 */
+    align-items: baseline;
+    gap: 4px;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  /* Right group: 主卡查看 / share-btn → hug */
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+  }
+
+  /* Collapsed card header — no cursor, no expand-hint needed (click body to expand) */
+  .card.collapsed .card-header {
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s ease;
+  }
+
+  .card.collapsed .card-header:hover {
+    background: rgba(0,0,0,0.02);
+  }
+
+  .card-header .expand-hint {
+    font-size: 0.72rem;
+    color: var(--accent);
+    font-weight: 500;
+    flex-shrink: 0;
+    opacity: 0.8;
+    transition: opacity 0.15s ease;
+    white-space: nowrap;
+    display: none; /* hidden by default */
+  }
+
+  /* "主卡查看" 后的细箭头指示符（› 单角引号，比 > 更细更轻） */
+  .card-header .expand-hint::after {
+    content: "›";
+    display: inline-block;
+    margin-left: 4px;
+    font-size: 1.1em;
+    line-height: 1;
+    vertical-align: baseline;
+    transition: transform 0.15s ease;
+  }
+  .card.collapsed .card-header:hover .expand-hint::after {
+    transform: translateX(2px);
+  }
+
+  /* Only show hint on collapsed (sidebar) cards */
+  .card.collapsed .card-header .expand-hint {
+    display: inline-block;
+  }
+
+  .card.collapsed .card-header:hover .expand-hint {
+    opacity: 1;
+  }
+
+  /* Hero card header: no interaction hint, no cursor */
+  .card:not(.collapsed) .card-header {
+    cursor: default;
+  }
+
+  .model-badge {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    /* baseline 对齐下，dot 默认会落在文字基线上看起来偏低；
+       上提到模型名视觉中心（约 cap-height 的一半）。 */
+    align-self: center;
+    transform: translateY(-1px);
+  }
+
+  .model-name {
+    font-weight: 600;
+    font-size: 0.85rem;
+    letter-spacing: 0.01em;
+    margin-right: 0;
+    /* Truncate with ellipsis when header is too narrow */
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    word-break: keep-all;
+    overflow-wrap: normal;
+  }
+
+  .recommended-tag {
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: var(--gold);
+    background: var(--gold-bg);
+    padding: 2px 0.6em;
+    border-radius: 12px;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+    border: 1px solid var(--gold-border);
+    margin-right: 0;
+    flex-shrink: 0;
+    /* baseline 容器里整体居中到模型名视觉中心（不再 stretch 撑满）。 */
+    align-self: center;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+  }
+
+  .word-count {
+    font-size: 0.72rem;
+    color: var(--text-light);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* word-count now sits inside .header-left, immediately after model-name with gap=4 */
+
+  .header-share-btn {
+    display: none;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--text-light);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-family: inherit;
+  }
+
+  .card:not(.collapsed) .header-share-btn {
+    display: inline-flex;
+  }
+
+  .header-share-btn:hover {
+    color: var(--accent);
+    border-color: rgba(37, 99, 235, 0.3);
+    background: rgba(37, 99, 235, 0.04);
+  }
+
+  .header-share-btn svg {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+  }
+
+  /* ===== CARD BODY — core reading area ===== */
+  .card-body {
+    padding: calc(var(--rhythm) * 2.25);
+    font-size: 0.9rem;
+    line-height: 1.9;
+    flex: 1;
+    overflow-y: auto;
+    max-height: none;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    color: #2c2c28;
+  }
+
+  /* Summary preview — shown when card is collapsed */
+  .card-summary-wrap {
+    display: none;
+    padding: calc(var(--rhythm) * 2) calc(var(--rhythm) * 2.25);
+  }
+
+  .card-summary-title {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: calc(var(--rhythm) * 0.6);
+  }
+
+  .card-summary-text {
+    font-size: 0.86rem;
+    line-height: 1.75;
+    color: var(--text-dim);
+  }
+
+  /* Full content wrapper — visible by default, hidden when card is collapsed */
+  .card-full { display: block; }
+
+  /* Hero card (主卡) 折叠态：让 card-body 内部纵向 flex，
+     正文区贴顶、"展开按钮 + debate-panel" 贴底，
+     多余高度变成正文与按钮之间的呼吸感，而非按钮下方的死白。
+     仅作用于主卡：sidebar 副卡折叠态用的是 .card-summary-wrap，不走这条链。 */
+  .card:not(.collapsed) .card-body {
+    display: flex;
+    flex-direction: column;
+  }
+  .card:not(.collapsed) .card-body > .card-full {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+  .card:not(.collapsed) .card-full > .answer-section {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+  /* 折叠态：直接拿 full-answer 渲染，让真实内容把高度撑满到 sidebar 等高。
+     用 .answer-section.is-collapsed 作为折叠标记（默认就是这个状态）。
+     - .answer-content 隐藏（避免与 full-answer 内容重复）
+     - .full-answer 显示，max-height 由 JS 根据 sidebar 高度动态注入到 --collapsed-h，
+       配合 overflow:hidden 截断
+     - 底部用 mask 渐隐遮罩，告诉用户"下面还有"
+     - toggle 按钮在 .full-answer 之后，紧贴渐隐区下沿 */
+  /* 主卡 .answer-content（condensed 摘要）始终隐藏：
+     折叠/展开都直接拿 .full-answer 渲染，避免摘要把 H1 顶下去 475px。 */
+  .card:not(.collapsed) .card-full > .answer-section > .answer-content {
+    display: none;
+  }
+  .card:not(.collapsed) .answer-section.is-collapsed > .full-answer {
+    display: block;
+    max-height: 600px;
+    overflow: hidden;
+    position: relative;
+    border-top: none;
+    padding-top: 0;
+    margin-top: 0;
+    /* 底部 48px 渐隐到背景色，提示"被截断"，不能太长否则像留白 */
+    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent 100%);
+            mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent 100%);
+  }
+  /* 展开态：full-answer 自然高度，无遮罩、无顶部 divider，
+     首行紧贴主卡 header 下方，与右侧次卡 condensed 摘要顶部对齐。 */
+  .card:not(.collapsed) .answer-section:not(.is-collapsed) > .full-answer {
+    max-height: none;
+    overflow: visible;
+    -webkit-mask-image: none;
+            mask-image: none;
+    border-top: none;
+    padding-top: 0;
+    margin-top: 0;
+  }
+  /* full-answer 首个子元素去掉自带的 margin-top，避免再次拉开间距 */
+  .card:not(.collapsed) .answer-section:not(.is-collapsed) > .full-answer > *:first-child {
+    margin-top: 0;
+  }
+
+  /* ===== ANSWER SECTION — condensed (default) + full (expandable) ===== */
+  .answer-section {
+    position: relative;
+  }
+
+  /* Concept diagram — always visible at top */
+  .concept-diagram {
+    width: 100%;
+    height: auto;
+    border-radius: 10px;
+    margin-bottom: calc(var(--rhythm) * 1.5);
+    display: block;
+  }
+
+  /* Condensed answer text — default view */
+  .condensed-answer {
+    font-size: 0.86rem;
+    line-height: 1.75;
+    color: var(--text-dim);
+  }
+
+  .condensed-answer p { margin-bottom: calc(var(--rhythm) * 1.2); }
+
+  /* Full original answer — hidden until expanded */
+  .full-answer {
+    border-top: 1px dashed var(--border);
+    padding-top: calc(var(--rhythm) * 1.5);
+    margin-top: calc(var(--rhythm) * 1);
+  }
+
+  /* ========= 按钮基类 .btn-ghost =========
+     尺寸/字号/边框/交互一次定义，toggle 和 share 共享。
+     任何加入 action-row 的按钮都自动等高、等padding。 */
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    height: 32px;
+    padding: 0 14px;
+    box-sizing: border-box;
+    font-family: inherit;
+    font-size: 0.73rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.01em;
+    color: var(--text-light);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  }
+  .btn-ghost:hover {
+    color: var(--accent);
+    border-color: rgba(37, 99, 235, 0.3);
+    background: rgba(37, 99, 235, 0.04);
+  }
+  .btn-ghost svg { width: 12px; height: 12px; flex-shrink: 0; display: block; }
+
+  /* 展开态：action-row 横向一分为二，左"收起回答"+ 右"分享此回答" */
+  .answer-action-row {
+    display: flex;
+    gap: 8px;
+    margin-top: calc(var(--rhythm) * 1);
+  }
+  .answer-action-row .answer-toggle { flex: 1; margin-top: 0; }
+  .answer-action-row .answer-share-btn { flex-shrink: 0; }
+
+  /* share 按钮：折叠态隐藏，只在展开后出现 */
+  .answer-share-btn { display: none; }
+  .answer-section:not(.is-collapsed) .answer-share-btn { display: inline-flex; }
+
+  /* ========= .answer-toggle 差异化 =========
+     基础尺寸继承 .btn-ghost，仅重写"折叠态"品牌色 */
+  .answer-toggle {
+    width: 100%;
+    color: var(--accent);
+    background: rgba(37, 99, 235, 0.03);
+    border-color: rgba(37, 99, 235, 0.12);
+  }
+  .answer-toggle:hover {
+    color: var(--accent);
+    background: rgba(37, 99, 235, 0.06);
+    border-color: rgba(37, 99, 235, 0.12);
+  }
+  /* 展开态：回到与 share 一致的中性灰 ghost，交互由 .btn-ghost:hover 接管 */
+  .answer-toggle.expanded {
+    color: var(--text-light);
+    background: transparent;
+    border-color: var(--border);
+  }
+  /* 收起态 hover：与 header-share-btn 风格一致——浅蓝边框 + 浅蓝底 + 蓝字 */
+  .answer-toggle.expanded:hover {
+    color: var(--accent);
+    border-color: rgba(37, 99, 235, 0.3);
+    background: rgba(37, 99, 235, 0.04);
+  }
+
+  .answer-section.collapsed .answer-content {
+    display: none;
+  }
+
+  .answer-section.collapsed .answer-toggle {
+    display: flex;
+  }
+
+  /* Scrollbar — subtle light style */
+  .card-body::-webkit-scrollbar { width: 4px; }
+  .card-body::-webkit-scrollbar-track { background: transparent; }
+  .card-body::-webkit-scrollbar-thumb { background: #d0d0ce; border-radius: 4px; }
+  .card-body::-webkit-scrollbar-thumb:hover { background: #b8b8b6; }
+
+  /* ===== HEADINGS ===== */
+  .card-body h1, .card-body h2, .card-body h3, .card-body h4 {
+    margin-top: calc(var(--rhythm) * 2.5);
+    margin-bottom: calc(var(--rhythm) * 1.25);
+    font-weight: 650;
+    color: var(--text);
+    line-height: 1.35;
+    letter-spacing: 0.005em;
+  }
+  .card-body h1:first-child,
+  .card-body h2:first-child,
+  .card-body h3:first-child,
+  .card-body h4:first-child { margin-top: 0; }
+  .card-body h1 { font-size: 1.18rem; }
+  .card-body h2 { font-size: 1.07rem; }
+  .card-body h3 { font-size: 0.98rem; }
+  .card-body h4 { font-size: 0.91rem; }
+
+  /* ===== PARAGRAPHS & TEXT ===== */
+  .card-body p {
+    margin-bottom: calc(var(--rhythm) * 1.5);
+  }
+
+  /* ===== LISTS ===== */
+  .card-body ul, .card-body ol {
+    margin-bottom: calc(var(--rhythm) * 1.5);
+    padding-left: 1.65rem;
+  }
+  .card-body li {
+    margin-bottom: calc(var(--rhythm) * 0.75);
+    padding-left: calc(var(--rhythm) * 0.35);
+  }
+  .card-body li::marker { color: var(--text-light); font-size: 0.82em; }
+
+  /* ===== CODE ===== */
+  .card-body code {
+    background: var(--code-bg);
+    padding: 0.2em 0.5em;
+    border-radius: 5px;
+    font-size: 0.84em;
+    font-family: var(--mono);
+    color: #444340;
+    word-break: break-all;
+  }
+
+  /* ===== CODE BLOCKS ===== */
+  .card-body pre {
+    background: var(--pre-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: calc(var(--rhythm) * 2);
+    overflow-x: auto;
+    margin: calc(var(--rhythm) * 1.5) 0;
+    width: 100%;
+  }
+
+  .card-body pre code {
+    background: none;
+    padding: 0;
+    font-size: 0.81rem;
+    line-height: 1.75;
+    color: #3c3c38;
+    word-break: normal;
+  }
+
+  .card-body strong { color: var(--text); font-weight: 650; }
+
+  /* ===== BLOCKQUOTE ===== */
+  .card-body blockquote {
+    border-left: 3px solid var(--border-strong);
+    padding-left: calc(var(--rhythm) * 1.5);
+    color: var(--text-dim);
+    margin: calc(var(--rhythm) * 1.5) 0;
+    font-style: normal;
+    line-height: 1.75;
+  }
+
+  /* ===== TABLES — auto-layout FILL behavior ===== */
+  .card-body table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    margin: calc(var(--rhythm) * 1.5) 0;
+    font-size: 0.84rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .card-body th, .card-body td {
+    padding: calc(var(--rhythm) * 1.1) calc(var(--rhythm) * 1.3);
+    border: 1px solid var(--border);
+    text-align: left;
+    vertical-align: top;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+    line-height: 1.6;
+  }
+
+  .card-body th {
+    background: var(--code-bg);
+    font-weight: 600;
+    font-size: 0.81rem;
+    color: var(--text);
+  }
+
+  .card-body td { color: #404038; }
+
+  /* ===== IMAGES & MULTIMODAL ===== */
+  .card-body img {
+    max-width: 100%; height: auto;
+    border-radius: 8px;
+    margin: calc(var(--rhythm) * 1.5) 0;
+  }
+
+  .card-body svg {
+    max-width: 100%; height: auto;
+    border-radius: 8px;
+    margin: calc(var(--rhythm) * 1.5) 0;
+  }
+
+  /* ===== HORIZONTAL RULE ===== */
+  .card-body hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: calc(var(--rhythm) * 2) 0;
+  }
+
+  /* ===== MATH ===== */
+  .math-block {
+    background: var(--code-bg);
+    border: 1px dashed var(--border-strong);
+    border-radius: 8px;
+    padding: calc(var(--rhythm) * 1.25);
+    margin: calc(var(--rhythm) * 1.5) 0;
+    font-family: var(--mono);
+    font-style: italic;
+    color: var(--text-dim);
+    text-align: center;
+    overflow-x: auto;
+  }
+
+  /*
+   * ============================================================
+   * DEBATE PANEL — Inter-model challenge & rebuttal UI
+   * ============================================================
+   */
+
+
+  /* Debate panel container inside card — same card as answer, no separator */
+  .debate-panel {
+    /* border-top removed: debate panel is part of the same card */
+  }
+
+  .debate-panel-header {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--rhythm));
+    padding: calc(var(--rhythm) * 1.25) calc(var(--rhythm) * 2.25);
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-dim);
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s ease;
+    border-bottom: 1px solid transparent;
+  }
+
+  .debate-panel-header:hover {
+    background: rgba(0,0,0,0.015);
+  }
+
+  .debate-panel-header .icon { font-size: 0.88rem; }
+
+  .debate-panel-header .toggle {
+    margin-left: auto;
+    font-size: 0.68rem;
+    transition: transform 0.2s ease;
+    color: var(--text-light);
+  }
+
+  .debate-panel-header.open .toggle {
+    transform: rotate(180deg);
+  }
+
+  .debate-count {
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--text-light);
+    margin-left: calc(var(--rhythm) / 2);
+  }
+
+  /* Debate items (hidden when collapsed) */
+  .debate-items {
+    display: none;
+    padding: 0 calc(var(--rhythm) * 2.25) calc(var(--rhythm) * 2);
+  }
+
+  .debate-panel.open .debate-items {
+    display: block;
+  }
+
+  /* Individual debate item */
+  .debate-item {
+    margin-bottom: calc(var(--rhythm) * 1.5);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .debate-item:last-child { margin-bottom: 0; }
+
+  /* Debate item collapsible: overview always visible, detail expandable */
+  .debate-item .debate-overview { }
+  .debate-item .debate-detail {
+    display: none;
+  }
+  .debate-item.expanded .debate-detail {
+    display: block;
+    margin-top: calc(var(--rhythm) * 1);
+  }
+
+  .debate-expand-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.73rem;
+    font-weight: 500;
+    color: var(--text-light);
+    cursor: pointer;
+    user-select: none;
+    margin-top: calc(var(--rhythm) * 0.75);
+    padding: 3px 8px;
+    border-radius: 6px;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+
+  .debate-expand-trigger:hover {
+    background: rgba(0,0,0,0.05);
+    color: var(--text-dim);
+  }
+
+  .debate-item.expanded .debate-expand-trigger .expand-arrow {
+    transform: rotate(180deg);
+  }
+
+  /* Challenge item (red tint) — model attacks another */
+  .debate-challenge {
+    background: var(--challenge-red-bg);
+    border: 1px solid var(--challenge-red-border);
+    border-radius: 10px;
+    padding: calc(var(--rhythm) * 1.5);
+    margin-bottom: calc(var(--rhythm) * 1.25);
+  }
+
+  .debate-challenge-header {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--rhythm) / 2);
+    margin-bottom: calc(var(--rhythm) * 1.25);
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+
+  .debate-challenge-header .label-icon { font-size: 0.9rem; flex-shrink: 0; }
+
+  .debate-challenge-header .label {
+    color: var(--challenge-red);
+    line-height: 1.45;
+  }
+
+  .debate-challenge-header .target-badge {
+    margin-left: calc(var(--rhythm) / 2);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--challenge-red);
+    background: var(--surface);
+    padding: 0.2em 0.7em;
+    border-radius: 10px;
+    border: 1px solid var(--challenge-red-border);
+  }
+
+  .debate-challenge-reason {
+    font-size: 0.84rem;
+    font-weight: 650;
+    color: var(--text);
+    margin-bottom: calc(var(--rhythm) * 0.75);
+    line-height: 1.55;
+  }
+
+  .debate-challenge-detail {
+    font-size: 0.84rem;
+    line-height: 1.8;
+    color: var(--text-dim);
+  }
+
+  /* Quote reference block — shows what's being replied to */
+  .debate-quote {
+    background: rgba(0,0,0,0.025);
+    border-left: 3px solid var(--border-strong);
+    border-radius: 0 6px 6px 0;
+    padding: calc(var(--rhythm) * 0.9) calc(var(--rhythm) * 1.1);
+    margin-bottom: calc(var(--rhythm) * 1);
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+
+  .debate-quote-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 3px;
+  }
+
+  .debate-quote-text {
+    font-style: italic;
+  }
+
+
+  /* Rebuttal item (green tint) — model defends itself */
+  .debate-rebuttal {
+    background: var(--rebuttal-green-bg);
+    border: 1px solid var(--rebuttal-green-border);
+    border-radius: 10px;
+    padding: calc(var(--rhythm) * 1.5);
+  }
+
+  .debate-rebuttal-header {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--rhythm) / 2);
+    margin-bottom: calc(var(--rhythm) * 1.25);
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+
+  .debate-rebuttal-header .label-icon { font-size: 0.9rem; flex-shrink: 0; }
+
+  .debate-rebuttal-header .label {
+    color: var(--rebuttal-green);
+    line-height: 1.45;
+  }
+
+  .debate-rebuttal-header .from-badge {
+    margin-left: calc(var(--rhythm) / 2);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--rebuttal-green);
+    background: var(--surface);
+    padding: 0.2em 0.7em;
+    border-radius: 10px;
+    border: 1px solid var(--rebuttal-green-border);
+  }
+
+  .debate-rebuttal-body {
+    font-size: 0.84rem;
+    line-height: 1.8;
+    color: var(--text-dim);
+  }
+
+  /* Counter-rebuttal (Round 4 final strike) — blue tint */
+  .debate-counter {
+    background: rgba(37, 99, 235, 0.04);
+    border: 1px solid rgba(37, 99, 235, 0.15);
+    border-radius: 10px;
+    padding: calc(var(--rhythm) * 1.5);
+    margin-top: calc(var(--rhythm) * 1);
+  }
+
+  .debate-counter-header {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--rhythm) / 2);
+    margin-bottom: calc(var(--rhythm) * 1.25);
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+
+  .debate-counter-header .label-icon { font-size: 0.9rem; flex-shrink: 0; }
+
+  .debate-counter-header .label {
+    color: var(--accent);
+    line-height: 1.45;
+  }
+
+  .debate-counter-header .target-badge {
+    margin-left: calc(var(--rhythm) / 2);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--accent);
+    background: var(--surface);
+    padding: 0.2em 0.7em;
+    border-radius: 10px;
+    border: 1px solid rgba(37, 99, 235, 0.25);
+  }
+
+  .debate-counter-body {
+    font-size: 0.84rem;
+    line-height: 1.8;
+    color: var(--text-dim);
+  }
+
+  /* No-debate indicator — inline, no clickable header */
+  .no-debate-inline {
+    padding: var(--space-m) var(--space-l);
+    font-size: 0.81rem;
+    color: var(--text-light);
+    text-align: center;
+  }
+
+  /* ===== FOOTER ===== */
+  .footer {
+    text-align: center;
+    margin-top: calc(var(--rhythm) * 6);
+    color: #c4c4c0;
+    font-size: 0.76rem;
+  }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 1080px) {
+    .grid { flex-direction: column; }
+    .card:not(.collapsed) { flex: none; width: 100%; }
+    .sidebar { flex-direction: row; flex-wrap: wrap; max-width: none; }
+    .card.collapsed { flex: 1; min-width: 200px; }
+  }
+  @media (max-width: 720px) {
+    body { padding: calc(var(--rhythm) * 3); }
+    .grid { flex-direction: column; }
+    .card:not(.collapsed) { flex: none; width: 100%; }
+    .sidebar { flex-direction: column; max-width: none; }
+    .card.collapsed { width: 100%; }
+    .question { font-size: 1.08rem; padding: 0; }
+    .hero { padding: calc(var(--rhythm) * 2); border-radius: 14px; }
+    .roster { justify-content: center; }
+    /* Mobile: hero card expanded, others truly collapsed */
+    .card.collapsed .card-summary-wrap { 
+      max-height: 120px; 
+      overflow: hidden; 
+    }
+  }
+
+  /* ===== BACK TO TOP =====
+     位置规范：position: fixed 悬浮在视口；水平右沿对齐 body 内容右沿（= 侧栏右沿）；
+     垂直离视口底 24px。滚过一屏后渐显。
+     right 直接用 body 的水平 padding（calc(var(--rhythm) * 4)），无需 JS 计算。 */
+  .back-to-top {
+    position: fixed;
+    right: calc(var(--rhythm) * 4);
+    /* bottom = body padding-bottom (40px) + footer 高度 (~22px) + footer margin-top (48px) ≈ 110px
+       让按钮中心略对齐主卡底沿那条视觉线 */
+    bottom: 110px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    color: var(--text-light);
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
+    opacity: 0;
+    transform: translateY(4px);
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    z-index: 50;
+    -webkit-tap-highlight-color: transparent;
+    /* 用 ↑（U+2191）字符，主流字体里都有，比 › 稳定 */
+    font-size: 1.1rem;
+    line-height: 1;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  }
+  .back-to-top-icon {
+    display: inline-block;
+    /* ↑ 字符在大多数字体里 baseline 偏低，flex 居中后视觉偏下，margin-bottom 1px 上推补偿 */
+    margin-bottom: 1px;
+    transition: transform 0.15s ease;
+  }
+
+  .back-to-top.visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .back-to-top:hover {
+    background: rgba(37, 99, 235, 0.04);
+    border-color: rgba(37, 99, 235, 0.3);
+    color: var(--accent);
+  }
+  .back-to-top:hover .back-to-top-icon {
+    transform: translateY(-2px);
+  }
+
+  @media (max-width: 720px) {
+    .back-to-top { right: calc(var(--rhythm) * 3); bottom: 12px; width: 36px; height: 36px; font-size: 1rem; }
+  }
+</style>
+
+<!-- MathJax for LaTeX rendering -->
+<script id="MathJax-script" async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script>
+// MoCompare Card Swap Logic:
+// - Clicking a SIDEBAR (collapsed) card → promotes it to HERO position
+// - HERO card is NOT interactive
+document.addEventListener('DOMContentLoaded', function() {
+  var grid = document.querySelector('.grid');
+
+  // === Mode switch (Debate / Compare) ===
+  (function initModeSwitch() {
+    var STORAGE_KEY = 'moco-mode';
+    var btns = document.querySelectorAll('.mode-switch-btn');
+    if (!btns.length) return;
+    var saved = null;
+    try { saved = localStorage.getItem(STORAGE_KEY); } catch(e) {}
+    var initial = saved === 'compare' ? 'compare' : 'debate';
+    applyMode(initial);
+    btns.forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        applyMode(btn.getAttribute('data-mode'));
+      });
+    });
+    function applyMode(mode) {
+      document.body.classList.toggle('mode-compare', mode === 'compare');
+      document.body.classList.toggle('mode-debate', mode === 'debate');
+      btns.forEach(function(b) {
+        var on = b.getAttribute('data-mode') === mode;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      try { localStorage.setItem(STORAGE_KEY, mode); } catch(e) {}
+    }
+  })();
+
+  // === Share button handler (event delegation — works for cards swapped later) ===
+  function showToast(msg) {
+    var t = document.getElementById('moco-toast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'moco-toast';
+      t.style.cssText = 'position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(80px);background:#1a1a2e;color:#fff;padding:10px 20px;border-radius:8px;font-size:0.82rem;font-weight:500;box-shadow:0 4px 24px rgba(0,0,0,0.18);opacity:0;transition:transform .35s cubic-bezier(.4,0,.2,1),opacity .35s ease;z-index:9999;pointer-events:none;white-space:nowrap;';
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.transform = 'translateX(-50%) translateY(0)';
+    t.style.opacity = '1';
+    clearTimeout(t._hideTimer);
+    t._hideTimer = setTimeout(function() {
+      t.style.transform = 'translateX(-50%) translateY(80px)';
+      t.style.opacity = '0';
+    }, 2500);
+  }
+
+  function copyToClipboard(text, okMsg) {
+    okMsg = okMsg || '已复制 ✓';
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;left:-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); showToast(okMsg); }
+      catch (e) { showToast('复制失败，请手动复制'); }
+      document.body.removeChild(ta);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function() { showToast(okMsg); }).catch(fallback);
+    } else {
+      fallback();
+    }
+  }
+
+  // ========== 分享：收集卡片数据 → 生成 MDX → 复制到剪贴板 ==========
+  // 设计意图：点击「分享此回答」后，把当前卡片的结构化内容打包成 MDX 文本，
+  // 用户粘给 AI，由 AI 调 MCP 追加写入「Moco 档案」腾讯文档。绕开后端存储。
+
+  // HTML → Markdown 轻量转换（只处理 .full-answer 实际出现的标签）
+  function htmlToMarkdown(root) {
+    if (!root) return '';
+    var lines = [];
+    function inline(node) {
+      // 递归把节点转成行内 Markdown 文本
+      if (node.nodeType === 3) return node.nodeValue.replace(/\s+/g, ' ');
+      if (node.nodeType !== 1) return '';
+      var tag = node.tagName.toLowerCase();
+      var inner = Array.prototype.map.call(node.childNodes, inline).join('');
+      if (tag === 'strong' || tag === 'b') return '**' + inner + '**';
+      if (tag === 'em' || tag === 'i') return '*' + inner + '*';
+      if (tag === 'code') return '`' + inner + '`';
+      if (tag === 'a') return '[' + inner + '](' + (node.getAttribute('href') || '') + ')';
+      if (tag === 'br') return '\n';
+      return inner;
+    }
+    function block(node, listPrefix) {
+      if (node.nodeType === 3) {
+        var t = node.nodeValue.trim();
+        if (t) lines.push(t);
+        return;
+      }
+      if (node.nodeType !== 1) return;
+      var tag = node.tagName.toLowerCase();
+      if (/^h[1-6]$/.test(tag)) {
+        var level = parseInt(tag[1], 10);
+        lines.push('\n' + '#'.repeat(level) + ' ' + inline(node).trim() + '\n');
+      } else if (tag === 'p') {
+        lines.push(inline(node).trim());
+        lines.push('');
+      } else if (tag === 'hr') {
+        lines.push('\n---\n');
+      } else if (tag === 'ul' || tag === 'ol') {
+        Array.prototype.forEach.call(node.children, function(li, i) {
+          if (li.tagName.toLowerCase() !== 'li') return;
+          var prefix = tag === 'ol' ? (i + 1) + '. ' : '- ';
+          lines.push(prefix + inline(li).trim());
+        });
+        lines.push('');
+      } else if (tag === 'blockquote') {
+        var inner = [];
+        Array.prototype.forEach.call(node.childNodes, function(c) {
+          if (c.nodeType === 1) inner.push(inline(c).trim());
+          else if (c.nodeType === 3 && c.nodeValue.trim()) inner.push(c.nodeValue.trim());
+        });
+        inner.filter(Boolean).forEach(function(line) { lines.push('> ' + line); });
+        lines.push('');
+      } else if (tag === 'table') {
+        var rows = node.querySelectorAll('tr');
+        if (!rows.length) return;
+        rows.forEach(function(tr, ri) {
+          var cells = tr.querySelectorAll('th,td');
+          var row = Array.prototype.map.call(cells, function(c) { return inline(c).trim().replace(/\|/g, '\\|'); }).join(' | ');
+          lines.push('| ' + row + ' |');
+          if (ri === 0) {
+            lines.push('| ' + Array.prototype.map.call(cells, function() { return '---'; }).join(' | ') + ' |');
+          }
+        });
+        lines.push('');
+      } else if (tag === 'pre') {
+        lines.push('```');
+        lines.push(node.textContent.replace(/\n+$/, ''));
+        lines.push('```');
+        lines.push('');
+      } else {
+        // 兜底：其他容器递归
+        Array.prototype.forEach.call(node.childNodes, function(c) { block(c); });
+      }
+    }
+    Array.prototype.forEach.call(root.childNodes, function(c) { block(c); });
+    // 合并多余空行
+    return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  }
+
+  function collectCardPayload(card) {
+    var modelName = (card.querySelector('.model-name') || {}).textContent || '';
+    var wordCount = (card.querySelector('.word-count') || {}).textContent || '';
+    var isRecommended = card.classList.contains('recommended');
+    var summaryEl = card.querySelector('.card-summary-text .condensed-answer');
+    var summary = summaryEl ? htmlToMarkdown(summaryEl) : '';
+    var fullEl = card.querySelector('.full-answer');
+    var fullMd = fullEl ? htmlToMarkdown(fullEl) : '';
+    var question = (document.querySelector('.question') || {}).textContent || '';
+    var ts = new Date();
+    var pad = function(n) { return n < 10 ? '0' + n : '' + n; };
+    var tsStr = ts.getFullYear() + '-' + pad(ts.getMonth() + 1) + '-' + pad(ts.getDate())
+              + ' ' + pad(ts.getHours()) + ':' + pad(ts.getMinutes());
+    return {
+      modelName: modelName.trim(),
+      wordCount: wordCount.trim(),
+      isRecommended: isRecommended,
+      question: question.trim(),
+      summary: summary,
+      fullMd: fullMd,
+      timestamp: tsStr
+    };
+  }
+
+  function buildMdx(p) {
+    // 结构：# 问题（唯一 Heading，档案大纲侧栏的全部锚点——用户按问题索引文档）
+    //       模型·时间·字数（普通段落，meta 信息不进大纲）
+    //       核心观点（加粗段落）
+    //       答案正文（原 Markdown 里所有 #~###### 统一转加粗段落，不再污染大纲）
+    // 设计原则：尊重原 Markdown 的语义层级，不复刻 HTML 视觉；档案靠问题锚点检索。
+    var star = p.isRecommended ? ' ⭐' : '';
+    // 把答案内部的所有 Markdown 标题（^#+ ）转成加粗段落，防止它们出现在大纲侧栏
+    var bodyMd = (p.fullMd || '').replace(/^#{1,6}\s+(.+)$/gm, '**$1**');
+    var parts = [];
+    parts.push('# ' + p.question);
+    parts.push('');
+    parts.push(p.modelName + star + '　·　' + p.timestamp + '　·　' + p.wordCount);
+    parts.push('');
+    if (p.summary) {
+      // 用 Callout 浅黄高亮块强调核心观点——视觉权重比正文还重，和扉页灰色 BlockQuote 拉开差异
+      // 腾讯文档 Callout 不认 type="info/warning"，必须直接传 blockColor/borderColor 属性
+      parts.push('<Callout blockColor="yellow" borderColor="yellow">');
+      parts.push('**核心观点**：' + p.summary);
+      parts.push('</Callout>');
+      parts.push('');
+    }
+    parts.push(bodyMd);
+    parts.push('');
+    parts.push('---');
+    parts.push('');
+    return parts.join('\n');
+  }
+
+  document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.header-share-btn, .answer-share-btn');
+    if (!btn) return;
+    e.stopPropagation();
+    var card = btn.closest('.card');
+    if (!card) return;
+    var payload = collectCardPayload(card);
+    var mdx = buildMdx(payload);
+    copyToClipboard(mdx, '已复制，粘给 AI 存档 📋');
+  });
+
+  function getHero() { return grid.querySelector('.card:not(.collapsed)'); }
+  function getSidebar() { return grid.querySelector('.sidebar'); }
+
+  function promoteToHero(card) {
+    var hero = getHero();
+    var sidebar = getSidebar();
+
+    // Demote existing hero → collapsed, move to sidebar
+    // 注意：不动 .recommended class——它只代表"是否为推荐回答"（数据状态），
+    // 与"是否在主卡位"（布局状态 = 是否有 .collapsed）解耦。
+    // 布局走 .card:not(.collapsed)，金边/金色高光走 .card.recommended，互不干扰。
+    if (hero && hero !== card) {
+      hero.classList.add('collapsed');
+      if (sidebar) sidebar.appendChild(hero);
+    }
+
+    // Promote clicked card → full expanded, move to hero slot
+    card.classList.remove('collapsed');
+    if (sidebar) grid.insertBefore(card, sidebar);
+
+    // Scroll to top of new hero smoothly
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  // --- Card click → ONLY sidebar cards promote to hero ---
+  document.querySelectorAll('.card-header').forEach(function(header) {
+    header.addEventListener('click', function() {
+      var card = this.closest('.card');
+
+      // ONLY collapsed (sidebar) cards respond to click
+      if (card.classList.contains('collapsed')) {
+        promoteToHero(card);
+      }
+    });
+  });
+
+  // --- Answer section: collapsed (mask preview of full-answer) ↔ expanded ---
+  // 折叠态：.answer-section 加 .is-collapsed 类，CSS 让 .full-answer 截断 + 渐隐遮罩；
+  // 展开态：移除 .is-collapsed，full-answer 自然展开，按钮文案变 "收起完整回答 ▲"，
+  //         按钮移到 .full-answer 之后（贴在挑战面板之上）。
+  document.querySelectorAll('.answer-section').forEach(function(section) {
+    var fullAnswer = section.querySelector('.full-answer');
+    var btn = section.querySelector('.answer-toggle');
+    if (!fullAnswer || !btn) return;
+    // 初始：折叠 + full-answer 显示（受 CSS 截断 + 遮罩控制）
+    section.classList.add('is-collapsed');
+    fullAnswer.style.display = '';
+    // 找卡片对应的模型名，用于 share 按钮
+    var card = section.closest('.card');
+    var headerShare = card ? card.querySelector('.header-share-btn') : null;
+    var modelName = headerShare ? headerShare.getAttribute('data-model') : '';
+    // 构造 action row：左 toggle + 右 share（展开后显示）
+    var row = document.createElement('div');
+    row.className = 'answer-action-row';
+    var shareBtn = document.createElement('button');
+    shareBtn.className = 'btn-ghost answer-share-btn';
+    shareBtn.setAttribute('data-model', modelName || '');
+    shareBtn.setAttribute('title', '分享此回答');
+    shareBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>分享此回答';
+    // 保证 toggle 也应用按钮基类，与 share 统一尺寸
+    btn.classList.add('btn-ghost');
+    row.appendChild(btn);
+    row.appendChild(shareBtn);
+    section.appendChild(row);
+  });
+
+  document.querySelectorAll('.answer-toggle').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var section = this.closest('.answer-section');
+      if (!section) return;
+      var fullAnswer = section.querySelector('.full-answer');
+      if (!fullAnswer) return;
+      var wc = this.getAttribute('data-wc') || '';
+      var isCollapsed = section.classList.contains('is-collapsed');
+      if (isCollapsed) {
+        // 展开：直接切类，不做任何滚动，避免页面跳动
+        section.classList.remove('is-collapsed');
+        this.classList.add('expanded');
+        this.innerHTML = '收起回答 · ' + wc + ' 字';
+      } else {
+        // 收起：同样不做滚动，按钮保持在原位由布局自然回流
+        section.classList.add('is-collapsed');
+        this.classList.remove('expanded');
+        this.innerHTML = '展开回答 · ' + wc + ' 字';
+      }
+    });
+  });
+
+  // --- Debate panel toggle (click panel header) ---
+  // Only bind if header exists (skip no-content panels)
+  document.querySelectorAll('.debate-panel.has-content .debate-panel-header').forEach(function(header) {
+    header.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var panel = this.parentElement;
+      panel.classList.toggle('open');
+      this.classList.toggle('open');
+    });
+  });
+
+  // Auto-open panels that have content (but keep items collapsed)
+  document.querySelectorAll('.debate-panel.has-content').forEach(function(panel) {
+    panel.classList.add('open');
+    var header = panel.querySelector('.debate-panel-header');
+    if (header) header.classList.add('open');
+  });
+
+  // --- Debate item expand (click "查看完整内容") ---
+  document.querySelectorAll('.debate-expand-trigger').forEach(function(trigger) {
+    trigger.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var item = this.closest('.debate-item');
+      item.classList.toggle('expanded');
+      var isExpanded = item.classList.contains('expanded');
+      this.innerHTML = isExpanded ? '<span class="expand-arrow">▲</span> 收起详细内容' : '<span class="expand-arrow">▼</span> 查看完整内容';
+    });
+  });
+});
+</script>
+</head>
+<body>
+
+<div class="hero">
+  <div class="header-label">MoCompare · 2026-04-24 16:02 <span class="mode-switch" role="tablist" aria-label="模式切换"><button type="button" class="mode-switch-btn active" data-mode="debate" role="tab" aria-selected="true">⚔️ Debate</button><button type="button" class="mode-switch-btn" data-mode="compare" role="tab" aria-selected="false">⚖️ Compare</button></span></div>
+  <div class="question">如何将宠物有机地和当前新技术框架下的skill能力相结合，才是合理的设计？</div>
+  <div class="hero-divider"></div>
+  <div class="roster-section">
+    <div class="roster-title">参与模型</div>
+    <div class="roster">
+    <div class="roster-item"><span class="roster-dot" style="background:#D97706"></span>Claude Sonnet</div>
+<div class="roster-item"><span class="roster-dot" style="background:#10A37F"></span>GPT-4o</div>
+<div class="roster-item"><span class="roster-dot" style="background:#4285F4"></span>Gemini</div>
+<div class="roster-item"><span class="roster-dot" style="background:#6B7280"></span>GLM-4</div>
+  </div>
+  </div>
+</div>
+
+<div class="winner-banner">
+  <span class="winner-icon">🏆</span>
+  <span class="winner-text">推荐回答：<span class="winner-model-name">Claude Sonnet</span> — 最全面系统的架构设计：提供 RPG 与 Agent 双模式选择、完整的 TypeScript 数据模型、从 MVP 到生态化的四级递进路线图，以及最具实操价值的避坑指南。在完整性、深度和可执行性三个维度均领先。</span>
+</div>
+
+<div class="debate-summary">
+  <span class="debate-summary-icon">🤝</span>
+  <span class="debate-summary-text"><strong>辩论结果：</strong>本轮辩论中，4 个模型互相审阅后均未发起挑战</span>
+</div>
+
+<div class="grid">
+  <div class="card recommended"><div class="card-header"><div class="header-left"><span class="model-badge" style="background:#D97706"></span><span class="model-name">Claude Sonnet</span><span class="word-count">4216 字</span><span class="recommended-tag">⭐ 推荐</span></div><div class="header-right"><button class="header-share-btn" data-model="Claude Sonnet" title="分享此回答"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>分享此回答</button><span class="expand-hint">主卡查看</span></div></div><div class="card-summary-wrap"><div class="card-summary-title">核心观点</div><div class="card-summary-text"><div class="condensed-answer"><p>宠物是能力载体而非能力本身：宠物属性影响技能效果，技能使用反哺宠物成长，通过适配层解耦但双向驱动。</p></div></div></div><div class="card-body"><div class="card-full"><div class="answer-section"><div class="answer-content"><div class="condensed-answer"><p>这是一个很好的架构设计问题。核心在于避免"宠物只是一个装饰性挂件"或"skill只是宠物的一个属性列表"这两种极端，而是让两者形成双向驱动的有机关系。</p>
+<p>宠物 = 主体（Entity）+ 成长状态 + 性格特质</p>
+<p>Skill = 可装备/可解锁的行为单元</p>
+<p>宠物拥有"技能槽"或"技能树"，skill 是宠物可以习得和执行的能力模块</p>
+<p>宠物属性 → 影响技能效果（加成、冷却、触发率）</p>
+<p>技能使用 → 反哺宠物成长（经验、亲密度、特性觉醒）</p>
+<p>Pet 系统和 Skill 系统应独立可测</p>
+<p>通过 适配层（Adapter） 或 中间件（Middleware） 连接，而非硬编码耦合</p>
+<p>base_stats: { hp: 100, energy: 50, charm: 30 }</p>
+<p>traits: [curious, lazy] 性格影响技能偏好</p>
+<p>skill_slots: 4 技能槽位上限</p>
+<p>equipped_skills:</p></div></div><button class="answer-toggle" data-wc="4216">展开回答 · 4216 字</button><div class="full-answer" style="display:none"><h1>宠物与 Skill 能力框架的有机融合设计</h1>
+<p>这是一个很好的架构设计问题。核心在于<strong>避免"宠物只是一个装饰性挂件"或"skill只是宠物的一个属性列表"这两种极端</strong>，而是让两者形成双向驱动的有机关系。</p>
+<hr>
+<h2>一、设计原则</h2>
+<h3>1. 宠物作为能力载体，而非能力本身</h3>
+<ul>
+<li><strong>宠物 = 主体（Entity）+ 成长状态 + 性格特质</strong></li>
+<li><strong>Skill = 可装备/可解锁的行为单元</strong></li>
+<li>宠物拥有"技能槽"或"技能树"，skill 是宠物可以习得和执行的能力模块</li>
+</ul>
+<h3>2. 双向影响机制</h3>
+<pre><code>宠物属性 → 影响技能效果（加成、冷却、触发率）
+技能使用 → 反哺宠物成长（经验、亲密度、特性觉醒）
+</code></pre>
+<h3>3. 解耦但关联</h3>
+<ul>
+<li>Pet 系统和 Skill 系统应独立可测</li>
+<li>通过 <strong>适配层（Adapter）</strong> 或 <strong>中间件（Middleware）</strong> 连接，而非硬编码耦合</li>
+</ul>
+<hr>
+<h2>二、推荐架构模型</h2>
+<h3>模型 A：技能树 + 装备槽模式（经典 RPG 风格）</h3>
+<pre><code class="language-yaml">Pet:
+  id: momo
+  base_stats: { hp: 100, energy: 50, charm: 30 }
+  traits: [curious, lazy]           # 性格影响技能偏好
+  skill_slots: 4                     # 技能槽位上限
+  equipped_skills:
+    - id: &quot;greet&quot;
+      level: 3
+      mastery: 0.85                 # 熟练度 0~1
+    - id: &quot;fetch_news&quot;
+      level: 1
+      mastery: 0.20
+  bond_level: 5                      # 亲密度等级
+</code></pre>
+<p><strong>优势：</strong> 用户理解门槛低，成长感强</p>
+<p><strong>适用：</strong> 有明确升级体系的场景</p>
+<hr>
+<h3>模型 B：行为驱动模式（Agent 风格）</h3>
+<p>宠物不是被动容器，而是<strong>主动的 Agent</strong>，根据上下文自主选择 skill：</p>
+<pre><code>┌─────────────────────────────────┐
+│           Pet Agent             │
+│                                 │
+│  ┌───────┐  ┌──────────────┐   │
+│  │ State │─▶│ Context       │   │
+│  │ (心情, │  │ (时间,用户行为) │   │
+│  │ 能量)  │  └──────┬───────┘   │
+│  └───────┘         │            │
+│                    ▼            │
+│  ┌──────────────────────────┐   │
+│  │    Decision Engine        │   │
+│  │  (性格权重 + 触发条件匹配) │   │
+│  └───────────┬──────────────┘   │
+│              │                  │
+│     ┌────────▼────────┐        │
+│     │  Skill Registry  │        │
+│     │  · greet         │        │
+│     │  · fetch_news    │        │
+│     │  · remind        │        │
+│     │  · play_mini_game│        │
+│     └─────────────────┘        │
+└─────────────────────────────────┘
+</code></pre>
+<p><strong>关键设计点：</strong></p>
+<table>
+<tr><th>维度</th><th>设计建议</th></tr>
+<tr><td><strong>触发机制</strong></td><td>基于事件（event-driven）+ 定时（cron）+ 交互（user action）三合一</td></tr>
+<tr><td><strong>选择策略</strong></td><td>性格Trait对每个skill有加权系数，高亲密度解锁更多skill</td></tr>
+<tr><td><strong>执行反馈</strong></td><td>每次skill执行后更新pet状态（能量消耗、情绪变化）</td></tr>
+<tr><td><strong>失败处理</strong></td><td>宠物"累了"/"不开心"时skill可能失败或有趣地变形</td></tr>
+</table>
+<hr>
+<h2>三、具体结合方式（按层次递进）</h2>
+<h3>层次 1：基础绑定（最低限度）</h3>
+<ul>
+<li>每个 Pet 实例关联一组可用 Skill ID</li>
+<li>调用 skill 时传入 pet context，做简单的数值修饰</li>
+</ul>
+<h3>层次 2：成长联动</h3>
+<ul>
+<li><strong>Skill 使用积累 → 解锁新 skill / 升级现有 skill</strong></li>
+<li><strong>Pet 属性变化 → 影响 skill 输出效果</strong></li>
+<li>引入 <strong>熟练度（Mastery）</strong> 和 <strong>亲和度（Affinity）</strong> 两个中间量</li>
+</ul>
+<h3>层次 3：性格系统深化</h3>
+<pre><code>宠物性格 Trait Map：
+  curious  → { news_skill: +0.3, explore_skill: +0.2 }
+  lazy     → { idle_animation: +0.5, auto_reply: -0.2 }
+  playful  → { mini_game: +0.4, greeting: +0.3 }
+  
+→ 性格不仅决定&quot;能做什么&quot;，还决定&quot;喜欢做什么&quot;
+→ 用户可以通过互动改变性格（正向反馈循环）
+</code></pre>
+<h3>层次 4：生态化（高级）</h3>
+<ul>
+<li><strong>宠物间社交</strong>：不同宠物的 skill 可以协作（组合技）</li>
+<li><strong>Skill 市场</strong>：宠物可以用 earned currency 购买/交换 skill</li>
+<li><strong>动态进化</strong>：某种 skill 使用到阈值后，宠物外观/形态发生变化</li>
+</ul>
+<hr>
+<h2>四、数据模型参考</h2>
+<pre><code class="language-typescript">// 核心接口定义
+interface Pet {
+  id: string
+  name: string
+  species: string          // snail / cat / dragon ...
+  rarity: &#x27;common&#x27; | &#x27;rare&#x27; | &#x27;epic&#x27; | &#x27;legendary&#x27;
+  
+  // 状态层
+  stats: PetStats
+  mood: MoodState
+  bond: BondState
+  
+  // 技能层
+  skillTree: SkillNode[]    // 已解锁的技能节点
+  activeSkills: string[]    // 当前装备中的 skill IDs
+  skillMastery: Record&lt;string, number&gt;  // skillId -&gt; 0~1
+  
+  // 性格层（影响skill选择和效果）
+  traits: Trait[]
+  traitAffinity: Record&lt;string, number&gt;  // traitId -&gt; 对某类skill的加权
+}
+
+interface Skill {
+  id: string
+  name: string
+  category: &#x27;social&#x27; | &#x27;utility&#x27; | &#x27;game&#x27; | &#x27;info&#x27;
+  
+  requirements: {
+    minBond?: number        // 亲密度要求
+    requiredTraits?: string[]  // 性格要求
+    prerequisiteSkills?: string[]  // 前置技能
+  }
+  
+  effects: SkillEffect[]
+  cost: { energy: number, cooldown: number }
+  
+  petModifier?: (pet: Pet) =&gt; number  
+  // 宠物对该skill的效果修正函数
+}
+</code></pre>
+<hr>
+<h2>五、避坑指南</h2>
+<table>
+<tr><th>常见错误</th><th>正确做法</th></tr>
+<tr><td>把所有 skill 硬编码在宠物类里</td><td>Skill 作为独立注册表，宠物通过 ID 引用</td></tr>
+<tr><td>宠物只是 skill 的启动器</td><td>宠物的状态应该真正影响 skill 的行为表现</td></tr>
+<tr><td>所有宠物共享同一套 skill 池</td><td>根据物种/rarity/性格差异化可用 skill</td></tr>
+<tr><td>忽略失败/cooldown 的趣味性</td><td>"宠物太困了，明天再帮你查吧"比冷冰冰的错误提示好</td></tr>
+<tr><td>Skill 和 Pet 各自独立迭代无协调</td><td>建立 <strong>Pet-Skill Compatibility Matrix</strong> 做兼容性管理</td></tr>
+</table>
+<hr>
+<h2>六、总结：合理设计的判断标准</h2>
+<p>一个<strong>有机融合</strong>的设计，应该满足：</p>
+<ol>
+<li><strong>用户感知层面</strong>：用户觉得"这是我的宠物在做这件事"，而不是"我在用一个有宠物皮肤的工具"</li>
+<li><strong>系统层面</strong>：移除 Pet 层后 Skill 仍可独立工作（解耦）；移除 Skill 后 Pet 仍有完整的存在感（非空壳）</li>
+<li><strong>成长层面</strong>：使用 Skill 是养宠过程的核心环节，而不是割裂的两个系统</li>
+<li><strong>扩展性层面</strong>：新增 Pet 或新增 Skill 时，另一方的改动量最小化</li>
+</ol>
+<p><strong>最简可行方案（MVP）：</strong> 从「层次 2：成长联动」开始——让 skill 使用产生宠物经验值，让宠物等级/亲密度解锁更多 skill。这个闭环一旦建立，后续的复杂机制都是在此之上的增量扩展。</p></div></div><div class="debate-panel no-content"><div class="no-debate-inline">未收到挑战 ✌️</div></div></div></div></div>
+<div class="sidebar"><div class="card collapsed"><div class="card-header"><div class="header-left"><span class="model-badge" style="background:#10A37F"></span><span class="model-name">GPT-4o</span><span class="word-count">1876 字</span></div><div class="header-right"><button class="header-share-btn" data-model="GPT-4o" title="分享此回答"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>分享此回答</button><span class="expand-hint">主卡查看</span></div></div><div class="card-summary-wrap"><div class="card-summary-title">核心观点</div><div class="card-summary-text"><div class="condensed-answer"><p>宠物不应是独立装饰模块，而应成为用户与 Skill 体系之间的情感化中介层——每一次照顾宠物的行为都产生实际的 Skill 输出价值。</p></div></div></div><div class="card-body"><div class="card-full"><div class="answer-section"><div class="answer-content"><div class="condensed-answer"><p>当前新技术框架（如 Agent/Skill 架构）的核心是能力组合与动态调度。宠物不应是一个独立的装饰性模块，而应成为用户与 Skill 体系之间的情感化中介层。</p>
+<p>宠物的状态（饥饿、心情、能量、成长阶段）应当自然地映射到 Skill 的调用逻辑上：</p>
+<p>关键设计原则：用户的每一次"照顾宠物"的行为，都应该产生实际的 Skill 输出价值，而非空洞的点击。</p>
+<p>为宠物设计性格维度（如：好奇型 / 稳重型 / 创意型）</p>
+<p>不同性格影响同一 Skill 的输出风格偏好</p>
+<p>好奇型宠物调用搜索 Skill 时，倾向返回多样化、跨界的结果</p>
+<p>稳重型宠物调用分析 Skill 时，倾向结构化、严谨的报告</p>
+<p>用户通过互动方式塑造宠物性格，间接定制自己的 Skill 使用偏好</p>
+<p>宠物等级 ────────────────┐</p>
+<p>│                    │</p>
+<p>▼                    ▼</p></div></div><button class="answer-toggle" data-wc="1876">展开回答 · 1876 字</button><div class="full-answer" style="display:none"><h1>宠物与 Skill 能力有机结合的设计思路</h1>
+<h2>一、核心理念：宠物作为"有生命的 Skill 调度器"</h2>
+<p>当前新技术框架（如 Agent/Skill 架构）的核心是<strong>能力组合与动态调度</strong>。宠物不应是一个独立的装饰性模块，而应成为<strong>用户与 Skill 体系之间的情感化中介层</strong>。</p>
+<hr>
+<h2>二、合理设计的四个层次</h2>
+<h3>1. <strong>状态驱动的 Skill 触发机制</strong></h3>
+<p>宠物的状态（饥饿、心情、能量、成长阶段）应当<strong>自然地映射到 Skill 的调用逻辑上</strong>：</p>
+<table>
+<tr><th>宠物状态</th><th>对应 Skill 行为</th><th>设计意义</th></tr>
+<tr><td>饥饿度低</td><td>自动触发"信息觅食"类 Skill（搜索、抓取资讯）</td><td>将"喂食"转化为有价值的信息获取行为</td></tr>
+<tr><td>心情低落</td><td>推荐娱乐/创意类 Skill（文生图、故事生成）</td><td>情绪价值与能力输出绑定</td></tr>
+<tr><td>能量充足</td><td>解锁高级 Skill 权限（长文档分析、代码生成）</td><td>成就感驱动功能探索</td></tr>
+<tr><td>成长升级</td><td>解锁新 Skill 类别或提升已有 Skill 效果</td><td>游戏化激励持续使用</td></tr>
+</table>
+<p><strong>关键设计原则</strong>：用户的每一次"照顾宠物"的行为，都应该产生<strong>实际的 Skill 输出价值</strong>，而非空洞的点击。</p>
+<h3>2. <strong>宠物人格与 Skill 风格的耦合</strong></h3>
+<ul>
+<li>为宠物设计<strong>性格维度</strong>（如：好奇型 / 稳重型 / 创意型）</li>
+<li>不同性格影响同一 Skill 的<strong>输出风格偏好</strong></li>
+<li>好奇型宠物调用搜索 Skill 时，倾向返回多样化、跨界的结果</li>
+<li>稳重型宠物调用分析 Skill 时，倾向结构化、严谨的报告</li>
+<li>用户通过<strong>互动方式塑造</strong>宠物性格，间接定制自己的 Skill 使用偏好</li>
+</ul>
+<h3>3. <strong>技能树与成长体系的统一</strong></h3>
+<pre><code>宠物等级 ────────────────┐
+    │                    │
+    ▼                    ▼
+基础 Skill 池          高级 Skill 池
+(始终可用)           (需解锁)
+    │                    │
+    └── 宠物经验值 ──► 升级解锁
+         ▲               │
+         │               │
+     用户使用 Skill      │
+     完成&quot;任务&quot;          │
+</code></pre>
+<ul>
+<li><strong>Skill 使用本身就是喂养方式</strong>：用搜索 Skill 找到高质量内容 → 宠物获得"知识经验"</li>
+<li><strong>避免双轨制疲劳</strong>：不要让用户同时维护"宠物养成"和"Skill 使用"两套独立进度</li>
+</ul>
+<h3>4. <strong>场景化的有机融合示例</strong></h3>
+<table>
+<tr><th>场景</th><th>传统做法</th><th>有机融合设计</th></tr>
+<tr><td>每日登录</td><td>点击"喂食"按钮得积分</td><td>宠物主动提出一个今日问题，用户用任意 Skill 回答，完成即"喂食"</td></tr>
+<tr><td>新手引导</td><td>弹窗教程列表</td><td>宠物"不懂"某事，引导用户调用对应 Skill 帮它解决，自然学会</td></tr>
+<tr><td>长期留存</td><td>签到奖励</td><td>宠物根据用户近期 Skill 使用模式，生成个性化的"兴趣发现"建议</td></tr>
+</table>
+<hr>
+<h2>三、应避免的反模式</h2>
+<ol>
+<li><strong>装饰性剥离</strong>：宠物只是挂件，点击后弹出一个与主流程无关的小游戏</li>
+<li><strong>双货币系统</strong>：宠物经验和 Skill 积分独立，用户需要分别"刷"</li>
+<li><strong>强制打断</strong>：宠物需求弹出模态框阻断正在进行的 Skill 操作</li>
+<li><strong>无意义的随机性</strong>：宠物状态变化与用户行为无关联，变成纯粹的 UI 噪音</li>
+</ol>
+<hr>
+<h2>四、总结判断标准</h2>
+<p>一个设计是否"有机"，可以用一个问题检验：</p>
+<blockquote><strong>如果去掉宠物系统，Skill 的使用流程是否会发生变化？</strong></blockquote>
+<ul>
+<li>如果答案是否定的 → 宠物是附加装饰，不是有机融合</li>
+<li>如果答案是肯定的 → 宠物已经成为了交互范式的一部分，这才是合理的设计</li>
+</ul>
+<p><strong>本质结论</strong>：宠物不应该是"Skill 系统之上的玩法层"，而应该是<strong>Skill 系统的情感化入口和个性化编排器</strong>。它将工具使用的理性决策转化为关系维护的本能行为，这才是人与 AI 协作的未来形态。</p></div></div><div class="debate-panel no-content"><div class="no-debate-inline">未收到挑战 ✌️</div></div></div></div></div>
+<div class="card collapsed"><div class="card-header"><div class="header-left"><span class="model-badge" style="background:#4285F4"></span><span class="model-name">Gemini</span><span class="word-count">2299 字</span></div><div class="header-right"><button class="header-share-btn" data-model="Gemini" title="分享此回答"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>分享此回答</button><span class="expand-hint">主卡查看</span></div></div><div class="card-summary-wrap"><div class="card-summary-title">核心观点</div><div class="card-summary-text"><div class="condensed-answer"><p>宠物不应是孤立娱乐功能，而应作为 Agent 能力体系的自然延伸——宠物是能力的「拟人化外显」，Skill 是宠物的「行为表达手段」。</p></div></div></div><div class="card-body"><div class="card-full"><div class="answer-section"><div class="answer-content"><div class="condensed-answer"><p>宠物不应是孤立的娱乐功能，而应作为 Agent 能力体系的自然延伸：</p>
+<p>┌─────────────────────────────────────┐</p>
+<p>│           Agent Core                │</p>
+<p>│  ┌─────────┐  ┌─────────┐          │</p>
+<p>│  │ Skills  │◄─┤  Pet    │          │</p>
+<p>│  │ (工具链) │  │ (赋能层)│          │</p>
+<p>│  └─────────┘  └─────────┘          │</p>
+<p>└─────────────────────────────────────┘</p>
+<p>宠物属性（成长值、亲密度、稀有度）应映射到具体的 Agent 能力加成</p>
+<p>避免宠物成为"装饰品"，每个宠物状态变化都应有功能性影响</p>
+<p>┌──────────────────────────────────────────┐</p></div></div><button class="answer-toggle" data-wc="2299">展开回答 · 2299 字</button><div class="full-answer" style="display:none"><h1>宠物系统与 Skill 能力框架的有机融合设计</h1>
+<h2>核心设计原则</h2>
+<h3>1. <strong>宠物作为"能力增强器"而非独立模块</strong></h3>
+<p>宠物不应是孤立的娱乐功能，而应作为 Agent 能力体系的<strong>自然延伸</strong>：</p>
+<pre><code>┌─────────────────────────────────────┐
+│           Agent Core                │
+│  ┌─────────┐  ┌─────────┐          │
+│  │ Skills  │◄─┤  Pet    │          │
+│  │ (工具链) │  │ (赋能层)│          │
+│  └─────────┘  └─────────┘          │
+└─────────────────────────────────────┘
+</code></pre>
+<p><strong>关键设计点：</strong></p>
+<ul>
+<li>宠物属性（成长值、亲密度、稀有度）应<strong>映射到具体的 Agent 能力加成</strong></li>
+<li>避免宠物成为"装饰品"，每个宠物状态变化都应有功能性影响</li>
+</ul>
+<h3>2. <strong>基于上下文感知的动态交互</strong></h3>
+<table>
+<tr><th>宠物状态</th><th>触发条件</th><th>Skill 增强</th></tr>
+<tr><td>高亲密度</td><td>用户连续互动</td><td>解锁高级 Skill 参数</td></tr>
+<tr><td>特殊技能触发</td><td>任务类型匹配</td><td>自动激活相关工具链</td></tr>
+<tr><td>成长里程碑</td><td>完成特定任务序列</td><td>开放新 Skill 类别</td></tr>
+</table>
+<h3>3. <strong>三层架构融合模型</strong></h3>
+<pre><code>┌──────────────────────────────────────────┐
+│         表现层 (Presentation)            │
+│   宠物形象 / 动画 / 反馈表达              │
+├──────────────────────────────────────────┤
+│         逻辑层 (Logic)                   │
+│   状态机 / 属性计算 / 触发规则引擎        │
+├──────────────────────────────────────────┤
+│         能力层 (Capability)              │
+│   Skill 调度 / 参数调整 / 权重优化       │
+└──────────────────────────────────────────┘
+</code></pre>
+<h2>具体实现策略</h2>
+<h3>策略一：<strong>技能树与宠物成长的绑定</strong></h3>
+<ul>
+<li>将宠物的"进化路径"设计为<strong>解锁不同 Skill 集合的钥匙</strong></li>
+<li>例如：蜗牛宠物 → 初级：文本处理能力加成 → 中级：多模态理解增强 → 高级：复杂推理辅助</li>
+</ul>
+<h3>策略二：<strong>情境化协作模式</strong></h3>
+<pre><code class="language-python"># 伪代码示例
+class PetSkillIntegration:
+    def on_task_start(self, task_type):
+        pet_state = self.get_current_state()
+        
+        if task_type == &quot;code_generation&quot;:
+            if pet_state.rarity == &quot;Uncommon&quot;:
+                return self.enhance_skill(&quot;code_completion&quot;, 
+                                         boost=pet_state.intimacy * 0.1)
+        
+        elif task_type == &quot;creative_writing&quot;:
+            if pet_state.mood == &quot;active&quot;:
+                return self.activate_skill(&quot;inspiration_engine&quot;)
+</code></pre>
+<h3>策略三：<strong>反馈循环机制</strong></h3>
+<ol>
+<li><strong>用户操作</strong> → 触发 Skill 使用</li>
+<li><strong>任务完成</strong> → 宠物获得经验/属性提升</li>
+<li><strong>宠物升级</strong> → 下次同类任务获得更高效率</li>
+<li><strong>正向激励</strong> → 用户更倾向于使用完整功能集</li>
+</ol>
+<h2>避免的反模式</h2>
+<ul>
+<li>❌ <strong>割裂设计</strong>：宠物和 Skill 是两个独立入口，无数据互通</li>
+<li>❌ <strong>强制捆绑</strong>：所有功能都必须通过宠物才能使用，增加认知负担</li>
+<li>❌ <strong>纯数值堆砌</strong>：只有属性增长而无实质性能力差异</li>
+<li>❌ <strong>忽略用户意图</strong>：在严肃工作场景中强行弹出宠物交互</li>
+</ul>
+<h2>推荐的评估指标</h2>
+<ol>
+<li><strong>有机性评分</strong>：宠物介入是否自然，是否干扰主流程</li>
+<li><strong>能力转化率</strong>：宠物状态变化实际带来的效率提升百分比</li>
+<li><strong>用户粘性关联</strong>：宠物互动频率与平台留存率的相关系数</li>
+<li><strong>Skill 发现率</strong>：通过宠物引导而发现的新功能使用率</li>
+</ol>
+<h2>总结</h2>
+<p>合理的核心在于：<strong>宠物是 Agent 人格化的载体，而 Skill 是其能力的外化表现。两者应在"人格-能力"的统一框架下设计，让每一次宠物互动都成为能力展示或增强的机会，而非额外的操作成本。</strong></p></div></div><div class="debate-panel no-content"><div class="no-debate-inline">未收到挑战 ✌️</div></div></div></div></div>
+<div class="card collapsed"><div class="card-header"><div class="header-left"><span class="model-badge" style="background:#6B7280"></span><span class="model-name">GLM-4</span><span class="word-count">2206 字</span></div><div class="header-right"><button class="header-share-btn" data-model="GLM-4" title="分享此回答"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>分享此回答</button><span class="expand-hint">主卡查看</span></div></div><div class="card-summary-wrap"><div class="card-summary-title">核心观点</div><div class="card-summary-text"><div class="condensed-answer"><p>宠物应作为用户与 AI 交互的情感桥梁和能力放大器，而非独立的挂件系统——只在特定场景被「召唤」，让 Skill 能力以宠物特质的形式被感知。</p></div></div></div><div class="card-body"><div class="card-full"><div class="answer-section"><div class="answer-content"><div class="condensed-answer"><p>合理的融合设计应让宠物成为用户与 AI 交互的情感桥梁和能力放大器，而非独立的挂件系统。</p>
+<p>宠物不应全局常驻，而应在特定场景中被"召唤"</p>
+<p>触发条件：用户提及宠物名、使用 /pet 命令、或完成特定任务里程碑</p>
+<p>示例：当用户长时间连续工作时，宠物可以主动提醒休息——这需要宠物能感知上下文</p>
+<p>将 Skill 的技术能力映射为宠物的"特质/属性"：</p>
+<p>应该：宠物的成长直接反映用户的技能熟练度</p>
+<p>用户首次调用某 Skill → 宠物获得"好奇心"</p>
+<p>用户熟练使用某 Skill → 宠物在该维度"进化"</p>
+<p>用户组合多个 Skill → 宠物解锁"复合形态"</p>
+<p>┌─────────────────────────────────────┐</p>
+<p>│           融合架构层次               │</p>
+<p>├─────────────────────────────────────┤</p>
+<p>│ Layer 4: 情感表达层 (UI/Animation)  │ ← 宠物的"脸"</p></div></div><button class="answer-toggle" data-wc="2206">展开回答 · 2206 字</button><div class="full-answer" style="display:none"><h1>宠物与 Skill 能力框架的有机融合设计</h1>
+<h2>一、核心理念：宠物作为"能力催化剂"而非装饰品</h2>
+<p>合理的融合设计应让宠物成为用户与 AI 交互的<strong>情感桥梁</strong>和<strong>能力放大器</strong>，而非独立的挂件系统。</p>
+<hr>
+<h2>二、设计原则</h2>
+<h3>1. <strong>场景化触发（Context-Aware Activation）</strong></h3>
+<ul>
+<li>宠物不应全局常驻，而应在特定场景中被"召唤"</li>
+<li>触发条件：用户提及宠物名、使用 <code>/pet</code> 命令、或完成特定任务里程碑</li>
+<li>示例：当用户长时间连续工作时，宠物可以主动提醒休息——这需要宠物能感知上下文</li>
+</ul>
+<h3>2. <strong>能力映射（Skill-to-Pet Trait Binding）</strong></h3>
+<p>将 Skill 的技术能力映射为宠物的"特质/属性"：</p>
+<table>
+<tr><th>技术领域</th><th>宠物特质</th><th>表现形式</th></tr>
+<tr><td>代码执行</td><td>智力值</td><td>复杂任务时宠物"思考"动画</td></tr>
+<tr><td>文件操作</td><td>敏捷度</td><td>快速文件处理时的反馈</td></tr>
+<tr><td>网络搜索</td><td>探索欲</td><td>搜索时的兴奋状态</td></tr>
+<tr><td>多模态生成</td><td>创造力</td><td>产出内容时的成就感</td></tr>
+</table>
+<h3>3. <strong>成长系统与技术深度绑定</strong></h3>
+<ul>
+<li><strong>不要</strong>设计独立的经验值系统</li>
+<li><strong>应该</strong>：宠物的成长直接反映用户的<strong>技能熟练度</strong></li>
+<li>用户首次调用某 Skill → 宠物获得"好奇心"</li>
+<li>用户熟练使用某 Skill → 宠物在该维度"进化"</li>
+<li>用户组合多个 Skill → 宠物解锁"复合形态"</li>
+</ul>
+<h3>4. <strong>交互范式：被动感知 + 主动介入</strong></h3>
+<pre><code>┌─────────────────────────────────────┐
+│           融合架构层次               │
+├─────────────────────────────────────┤
+│ Layer 4: 情感表达层 (UI/Animation)  │ ← 宠物的&quot;脸&quot;
+│ Layer 3: 行为决策层 (Pet Brain)      │ ← 根据上下文决定行为
+│ Layer 2: 事件监听层 (Event Bus)     │ ← 监听所有 Skill 调用
+│ Layer 1: Skill 执行层 (Core)        │ ← 原有业务逻辑不变
+└─────────────────────────────────────┘
+</code></pre>
+<hr>
+<h2>三、具体实现策略</h2>
+<h3>A. 事件驱动架构</h3>
+<p>宠物作为<strong>观察者（Observer）</strong>订阅 Skill 生命周期事件：</p>
+<pre><code class="language-python"># 伪代码示意
+@event_listener(&quot;skill:executed&quot;)
+def on_skill_executed(event):
+    skill_name = event.skill_name
+    duration = event.duration
+    success = event.success
+    
+    pet.react(
+        emotion=&quot;excited&quot; if success else &quot;concerned&quot;,
+        trait=map_skill_to_trait(skill_name),
+        intensity=calculate_engagement(duration)
+    )
+</code></pre>
+<h3>B. 个性化适配</h3>
+<ul>
+<li>宠物性格应影响其反应模式：</li>
+<li><strong>活泼型</strong>：每次 Skill 调用都给予积极反馈（适合新手引导）</li>
+<li><strong>沉稳型</strong>：只在关键节点（错误、突破）时出现（适合专家用户）</li>
+<li><strong>调皮型</strong>：偶尔给出意外建议或"捣乱"（增加趣味性）</li>
+</ul>
+<h3>C. 跨 Skill 协同感知</h3>
+<p>宠物能感知<strong>多 Skill 组合使用</strong>，这是单点 Skill 无法做到的：</p>
+<ul>
+<li>用户同时使用 <code>Browser Automation</code> + <code>pdf</code> → 宠物识别为"信息采集工作流"，给出针对性反馈</li>
+<li>这种<strong>模式识别</strong>是宠物系统的独特价值</li>
+</ul>
+<hr>
+<h2>四、应避免的反模式</h2>
+<table>
+<tr><th>反模式</th><th>问题</th><th>正确做法</th></tr>
+<tr><td>宠物独立存储状态</td><td>数据冗余，与实际能力脱节</td><td>直接读取 Skill 使用记录</td></tr>
+<tr><td>强制交互打断</td><td>影响工作效率</td><td>默认静默，按需唤出</td></tr>
+<tr><td>纯 UI 装饰</td><td>无实质价值</td><td>每个行为对应可操作的洞察</td></tr>
+<tr><td>复杂养成游戏</td><td>分散注意力</td><td>成长自动化，无需额外投入</td></tr>
+</table>
+<hr>
+<h2>五、总结</h2>
+<p>合理设计的本质是：<strong>宠物是 Skill 框架的"人格化投影"</strong>。</p>
+<p>它不引入新的复杂度，而是将已有的技术能力以更人性化的方式呈现。用户与宠物的每一次互动，本质上都是在与底层的 Skill 能力体系对话——只是多了一层情感连接，使技术工具变得有温度、有记忆、有成长感。</p>
+<blockquote><strong>检验标准</strong>：如果移除宠物系统，核心功能是否受损？答案应该是<strong>否</strong>（功能完整），但用户体验会显著下降（失去情感纽带）。</blockquote></div></div><div class="debate-panel no-content"><div class="no-debate-inline">未收到挑战 ✌️</div></div></div></div></div></div>
+</div>
+
+<div class="footer">
+  Generated by MoCompare · 2026-04-24 16:02 · ⚔️ Cross-Model Debate Enabled
+</div>
+
+<button class="back-to-top" id="backToTop" aria-label="回到顶部" title="回到顶部"><span class="back-to-top-icon">↑</span></button>
+
+<script>
+(function () {
+  var btn = document.getElementById('backToTop');
+  if (!btn) return;
+
+  // 显示时机：滚过一屏后渐显
+  function onScroll() {
+    if (window.scrollY > window.innerHeight) btn.classList.add('visible');
+    else btn.classList.remove('visible');
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  // 自定义快速回顶：固定 300ms，ease-out，避免浏览器原生 smooth 在长文档下过慢
+  btn.addEventListener('click', function () {
+    var startY = window.scrollY;
+    if (startY === 0) return;
+    var duration = 300;
+    var startT = performance.now();
+    function step(now) {
+      var t = Math.min(1, (now - startT) / duration);
+      var eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
+      window.scrollTo(0, startY * (1 - eased));
+      if (t < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  });
+  onScroll();
+})();
+</script>
+
+</body>
+</html>

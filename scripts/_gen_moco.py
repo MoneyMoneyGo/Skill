@@ -1,14 +1,53 @@
 #!/usr/bin/env python3
-"""Generate moco HTML page from 4 model answers + debate data."""
+"""Generate moco HTML page from 4 model answers + debate data.
 
-import json, subprocess, sys
-from datetime import datetime
+Usage:
+    python3 _gen_moco.py --data <path/to/debate-data.json> --output <path/to/moco-YYYYMMDD.html>
 
-TEMPLATE_PATH = "/Users/soy/.workbuddy/skills/moco/assets/compare-template.html"
-MD2HTML = "/Users/soy/.workbuddy/skills/moco/scripts/md2html.py"
-DEBATE_DATA = "/Users/soy/WorkBuddy/20260423124318/debate-data.json"
-OUTPUT_PATH = "/Users/soy/WorkBuddy/20260423124318/moco-20260423.html"
-MANAGED_PYTHON = "/Users/soy/.workbuddy/binaries/python/versions/3.13.12/bin/python3"
+Optional:
+    --template <path>   Override template path (default: ../assets/compare-template.html)
+    --md2html  <path>   Override md2html.py path (default: ./md2html.py, sibling)
+    --python   <path>   Python interpreter for md2html subprocess (default: current sys.executable)
+"""
+
+import argparse
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+
+def _parse_args():
+    p = argparse.ArgumentParser(description="Generate moco HTML page.")
+    p.add_argument("--data", required=True, help="Path to debate-data.json")
+    p.add_argument("--output", required=True, help="Path to write the generated HTML")
+    p.add_argument("--template", default=None,
+                   help="Path to compare-template.html (default: <skill_root>/assets/compare-template.html)")
+    p.add_argument("--md2html", default=None,
+                   help="Path to md2html.py (default: ./md2html.py next to this script)")
+    p.add_argument("--python", default=sys.executable,
+                   help="Python interpreter to run md2html (default: current sys.executable)")
+    return p.parse_args()
+
+
+_ARGS = _parse_args()
+_SCRIPT_DIR = Path(__file__).resolve().parent
+_SKILL_ROOT = _SCRIPT_DIR.parent
+
+TEMPLATE_PATH = str(Path(_ARGS.template) if _ARGS.template else _SKILL_ROOT / "assets" / "compare-template.html")
+MD2HTML = str(Path(_ARGS.md2html) if _ARGS.md2html else _SCRIPT_DIR / "md2html.py")
+DEBATE_DATA = str(Path(_ARGS.data))
+OUTPUT_PATH = str(Path(_ARGS.output))
+MANAGED_PYTHON = _ARGS.python
+
+# Sanity checks
+for _label, _path in (("template", TEMPLATE_PATH), ("md2html", MD2HTML), ("data", DEBATE_DATA)):
+    if not Path(_path).exists():
+        sys.stderr.write(f"ERROR: {_label} not found: {_path}\n")
+        sys.exit(2)
+
+# Ensure output directory exists
+Path(OUTPUT_PATH).parent.mkdir(parents=True, exist_ok=True)
 
 # Load debate data from external JSON
 with open(DEBATE_DATA, "r", encoding="utf-8") as f:

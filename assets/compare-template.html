@@ -9,38 +9,75 @@
 <title>MoCompare</title>
 <style>
   :root {
+    /* ===== 基础调色板 ===== */
     --bg: #f5f5f4;
     --surface: #ffffff;
     --border: #e5e5e3;
     --border-strong: #d4d4d2;
+    --divider: #f0f0ee;       /* 分割线专用：比 --border 更柔和，用于 card-header 底、hr、full-answer 顶等内部分隔 */
     --text: #1c1c1c;
     --text-dim: #787874;
     --text-light: #a0a09c;
     --accent: #2563eb;
     --gold: #b45309;
+    --challenge-red: #dc2626;
+    --rebuttal-green: #16a34a;
+    /* 次要内容承载面：inline code 底、pre 代码块底、table header 底
+       原来分 --code-bg(#f0f0ee) 和 --pre-bg(#f7f7f6) 两档，
+       视觉差异极小但语义重复——合并到 --surface-muted 统一管理。
+       取较浅的 #f7f7f6：和 --bg #f5f5f4 区分度足够，长代码阅读更友好，
+       table header 同步变浅一档不抢视觉。 */
+    --surface-muted: #f7f7f6;
+
+    /* ===== 状态色 token：按"什么场景用"命名，不是按透明度 =====
+       accent 系：交互态（hover 底/边、按钮 active、轻量装饰）
+       gold 系：推荐卡专属
+       challenge/rebuttal/counter：辩论三色 */
+    --accent-bg-hover: rgba(37, 99, 235, 0.06);   /* 通用 hover 底 (btn-ghost / header-share / counter) */
+    --accent-border-hover: rgba(37, 99, 235, 0.32);  /* 通用 hover 边 */
+    --accent-border-strong: rgba(37, 99, 235, 0.50); /* counter 反击 badge 边 */
+    --accent-border-bg: rgba(37, 99, 235, 0.22);     /* counter 反击底边 */
     --gold-bg: rgba(180, 83, 9, 0.06);
     --gold-border: rgba(180, 83, 9, 0.32);
-    --challenge-red: #dc2626;
+    --gold-shadow: rgba(180, 83, 9, 0.10);            /* recommended 卡阴影 */
     --challenge-red-bg: rgba(220, 38, 38, 0.04);
     --challenge-red-border: rgba(220, 38, 38, 0.15);
-    --rebuttal-green: #16a34a;
     --rebuttal-green-bg: rgba(22, 163, 74, 0.04);
     --rebuttal-green-border: rgba(22, 163, 74, 0.15);
-    --code-bg: #f0f0ee;
-    --pre-bg: #f7f7f6;
+    --neutral-hover-bg: rgba(0, 0, 0, 0.03);          /* card-header hover */
+    --neutral-hover-bg-soft: rgba(0, 0, 0, 0.02);    /* debate-panel-header hover */
+    --neutral-hover-bg-strong: rgba(0, 0, 0, 0.05);   /* debate-expand-trigger hover */
+    --neutral-quote-bg: rgba(0, 0, 0, 0.025);         /* debate-quote 底 */
+    --mode-switch-bg: rgba(0,0,0,0.04);            /* mode-switch 容器底 */
 
-    /* Typography scale */
+    /* ===== Typography scale ===== */
     --font: -apple-system, "SF Pro Text", "Helvetica Neue", sans-serif;
     --mono: "SF Mono", "Fira Code", "Consolas", monospace;
 
-    /* Spacing scale — single source of truth */
-    --rhythm: 8px;          /* legacy base, do not use directly */
-    --space-xs: 4px;        /* 0.5x */
-    --space-s: 8px;         /* 1x  — base unit */
-    --space-m: 12px;        /* 1.5x */
-    --space-l: 20px;        /* 2.5x */
-    --space-xl: 32px;       /* 4x */
-    --space-2xl: 48px;      /* 6x */
+    /* ===== 字号 token：按"信息角色"命名 =====
+       角色比 size 重要：读到 --text-meta 直接知道这是"次要标注"，
+       不用猜 0.72rem 是什么。9 档覆盖全部使用场景，无 magic number。 */
+    --text-micro: 0.7rem;       /* 标签/badge/mode-switch/roster-title */
+    --text-meta: 0.78rem;       /* meta 信息：summary-label、card-meta、winner-pill、word-count */
+    --text-body: 0.86rem;       /* 主正文邻近：condensed-answer、debate body、card-summary */
+    --text-emphasis: 0.9rem;    /* 主正文：card-body、challenge-text、rebuttal-text */
+    --text-strong: 1rem;        /* 强调段：model-name、winner-banner-text */
+    --text-heading-s: 1.08rem;  /* card 内 h2 */
+    --text-heading-m: 1.16rem;  /* card 内 h1、debate-panel 大标题 */
+    --text-hero: 1.1rem;        /* 移动端 question fallback、back-to-top 字号 */
+    --text-question: 1.3rem;    /* hero question 主标题 */
+
+    /* ===== 间距 token：按"语义边界层级"命名 =====
+       禁止再用裸 px 或 calc(var(--gap-inline) * N)。
+       读到 --gap-section-major 就知道"这是大区块边界"，下次改间距不会乱。 */
+    --gap-tight: 4px;            /* 行内紧密：badge 内、icon ↔ 文字 */
+    --gap-inline: 8px;           /* 行内常规：dot ↔ name、按钮内 gap */
+    --gap-block-s: 12px;         /* 块级紧凑：卡内段间、meta ↔ body、按钮间距 */
+    --gap-block-m: 18px;         /* 卡片内边距、节内主间距（=2.25×rhythm 主战场）*/
+    --gap-section: 24px;         /* 节边界：hero ↔ grid、卡间距 */
+    --gap-section-major: 32px;   /* 区块大边界：mode 视觉补偿、winner ↔ grid */
+    --gap-canvas: 40px;          /* body padding-top */
+    --gap-canvas-large: 48px;    /* footer 上方超大留白、debate items 底 padding */
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -51,7 +88,7 @@
     color: var(--text);
     line-height: 1.85;
     min-height: 100vh;
-    padding: calc(var(--rhythm) * 5) calc(var(--rhythm) * 4);
+    padding: var(--gap-canvas) var(--gap-section-major);
     letter-spacing: 0.015em;
     -webkit-font-smoothing: antialiased;
   }
@@ -59,8 +96,8 @@
   /* ===== HERO (header + question + roster as one unit) ===== */
   .hero {
     max-width: 880px;
-    margin: 0 auto calc(var(--rhythm) * 3);
-    padding: calc(var(--rhythm) * 1.5) calc(var(--rhythm) * 2) calc(var(--rhythm) * 2);
+    margin: 0 auto var(--gap-section);
+    padding: var(--gap-block-s) var(--gap-block-m) var(--gap-block-m);
     background: transparent;
     border: none;
     border-radius: 0;
@@ -68,24 +105,24 @@
   }
 
   .header-label {
-    font-size: 0.72rem;
+    font-size: var(--text-micro);
     color: var(--text-light);
-    margin-bottom: calc(var(--rhythm) * 1.5);
+    margin-bottom: var(--gap-block-s);
     letter-spacing: 0.14em;
     text-transform: uppercase;
     font-weight: 500;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: calc(var(--rhythm));
+    gap: calc(var(--gap-inline));
     flex-wrap: wrap;
   }
 
   .debate-badge {
     display: inline-flex;
     align-items: center;
-    gap: calc(var(--rhythm) / 2);
-    font-size: 0.68rem;
+    gap: var(--gap-tight);
+    font-size: var(--text-micro);
     font-weight: 600;
     color: var(--challenge-red);
     background: var(--challenge-red-bg);
@@ -101,7 +138,7 @@
   .mode-switch {
     display: inline-flex;
     align-items: center;
-    background: rgba(0,0,0,0.04);
+    background: var(--mode-switch-bg);
     border-radius: 20px;
     padding: 2px;
     margin-left: 0;
@@ -113,7 +150,7 @@
     border: none;
     background: transparent;
     font-family: inherit;
-    font-size: 0.72rem;
+    font-size: var(--text-micro);
     font-weight: 600;
     letter-spacing: 0.04em;
     color: var(--text-light);
@@ -133,7 +170,7 @@
 
   .mode-switch-btn.active {
     background: var(--surface);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 0 rgba(0,0,0,0.02);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 0 var(--neutral-hover-bg);
   }
 
   .mode-switch-btn[data-mode="debate"].active {
@@ -144,29 +181,92 @@
     color: var(--accent);
   }
 
-  /* ===== COMPARE MODE: hide debate-only content (challenges, rebuttals, debate summary)
-     Keep winner-banner: 🏆 recommended answer + reason is core comparison info, not debate. */
-  body.mode-compare .debate-panel,
+  /* ===== HERO SUMMARY 容器（winner-banner + debate-summary 的外层）=====
+     银纸设计（2026-04-25 Round 6）：父容器本身不做任何动画。
+     
+     层级模型（银纸亲自定的）：
+     - .hero-summary：父容器，静态 block，只负责语义分组和对外间距（margin-bottom 32px）
+     - .winner-banner：子1，静止不动，不在任何动画容器里，浏览器根本不需要重绘它
+     - .hero-summary-debate-slot：子2，**自己是单行 grid 折叠容器**
+         折叠时高度从内容高→0，margin-top 从 12px→0
+         这个高度变化 = 父容器 .hero-summary 的高度变化 = 向下推挤 .grid 答案区
+     
+     为什么 winner-banner 不会被逐帧渲染：
+     它是 .hero-summary 的普通 block 子项，.hero-summary 自身没有 transition。
+     真正做动画的是 .hero-summary-debate-slot（grid-template-rows 和 margin-top）。
+     slot 的高度变化通过正常文档流"推挤"下方元素，winner-banner 在它上方，
+     位置由流式布局定死，不参与任何动画计算。这就是银纸说的"子容器没有发生
+     任何变化，不被逐帧渲染"。 */
+  .hero-summary {
+    max-width: 1440px;
+    margin: 0 auto var(--gap-section-major);
+    /* 普通 block 流式布局，自身不做任何 transition */
+  }
+  /* debate 槽：单行 grid 折叠容器
+     - 展开态：grid-template-rows: 1fr + margin-top: 12px
+     - 收起态：grid-template-rows: 0fr + margin-top: 0
+     - fr↔fr 插值干净（单行 grid 没有 auto 行陷阱） */
+  /* 折叠槽：用 grid-template-rows minmax(0, 1fr) ↔ minmax(0, 0fr) 做高度过渡。
+     关键约束：
+     1. minmax(0, ...) 必须显式写——纯 1fr/0fr 在内容驱动高度的容器里 fr 算不出来，
+        浏览器会 fallback 到 auto，导致 0fr 不收缩（这就是 6 轮 38px 不掉的根因）。
+     2. slot 自己 overflow: hidden，否则子元素溢出可见仍占视觉位。
+     3. 子元素 min-height: 0，避免 auto 下限挡住。 */
+  .hero-summary-debate-slot {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
+    margin-top: var(--gap-block-s);
+    overflow: hidden;
+    /* 缓动统一为 Material standard cubic-bezier(0.4, 0, 0.2, 1)：前后段均衡，
+       不会像 easeOutCubic 那样末段"踩刹车"导致视觉卡顿。
+       duration 220ms 与 debate-summary opacity 完全对齐——所有动画同时开始同时结束，
+       消除 80ms 尾部"答案区单独蠕动"的卡顿感。 */
+    transition: grid-template-rows 220ms cubic-bezier(0.4, 0, 0.2, 1),
+                margin-top         220ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  body.mode-compare .hero-summary-debate-slot {
+    grid-template-rows: minmax(0, 0fr);
+    margin-top: 0;
+  }
+  .hero-summary-debate-slot > * {
+    min-height: 0;
+  }
+
+  /* ===== COMPARE / DEBATE MODE 切换（子块的 opacity）=====
+     debate-summary 子块本身四条边全锚定——尺寸、margin 不动。
+     只切 opacity + visibility，视觉上"原地淡入淡出"，容器的 grid 收缩负责推挤下方。 */
+  .debate-summary {
+    transition:
+      opacity    220ms cubic-bezier(0.4, 0, 0.2, 1),
+      visibility 0s    linear 0ms;
+  }
   body.mode-compare .debate-summary {
-    display: none !important;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+      opacity    220ms cubic-bezier(0.4, 0, 0.2, 1),
+      visibility 0s    linear 220ms;
   }
 
-  /* Visual compensation: in Compare mode, winner-banner sits directly on top of grid
-     (实色块紧挨实色块), 12px feels too cramped without the airy debate-summary buffer.
-     Bump margin to 4×rhythm (32px) so the gap reads as "open" like Debate mode. */
-  body.mode-compare .winner-banner {
-    margin-bottom: calc(var(--rhythm) * 4);
+  /* debate-panel（每张卡里的挑战/反驳展开区）在 compare 模式也要隐藏，
+     但它在卡片内部，不需要容器级处理——直接 opacity + visibility 足矣。 */
+  .debate-panel {
+    transition:
+      opacity    220ms cubic-bezier(0.4, 0, 0.2, 1),
+      visibility 0s    linear 0ms;
   }
-
-  /* Debate mode: debate-summary → grid 也用同样的 32px，让"辩论结果块→答案卡"
-     的呼吸感和 Compare 模式的"winner-banner→答案卡"一致。
-     winner-banner→debate-summary 之间保留 12px（轻量元素相邻，紧凑合理）。 */
-  body.mode-debate .debate-summary {
-    margin-bottom: calc(var(--rhythm) * 4);
+  body.mode-compare .debate-panel {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+      opacity    220ms cubic-bezier(0.4, 0, 0.2, 1),
+      visibility 0s    linear 220ms;
   }
 
   .question {
-    font-size: 1.3rem;
+    font-size: var(--text-question);
     font-weight: 600;
     line-height: 1.6;
     color: var(--text);
@@ -184,7 +284,7 @@
   .hero-divider {
     height: 1px;
     background: var(--border);
-    margin: calc(var(--rhythm) * 2) auto calc(var(--rhythm) * 1.5);
+    margin: var(--gap-block-m) auto var(--gap-block-s);
     max-width: 160px;
     opacity: 0.6;
   }
@@ -196,31 +296,31 @@
   }
 
   .roster-title {
-    font-size: 0.68rem;
+    font-size: var(--text-micro);
     font-weight: 500;
     color: var(--text-light);
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    margin-bottom: calc(var(--rhythm) * 1);
+    margin-bottom: var(--gap-inline);
   }
 
   .roster {
     display: flex;
     justify-content: center;
     flex-wrap: wrap;
-    gap: calc(var(--rhythm) * 2.5);
-    row-gap: calc(var(--rhythm) * 1);
+    gap: var(--gap-block-m);
+    row-gap: var(--gap-inline);
   }
 
   .roster-item {
     display: inline-flex;
     align-items: center;
-    gap: calc(var(--rhythm) / 2);
+    gap: var(--gap-tight);
     padding: 0;
     background: transparent;
     border: none;
     border-radius: 0;
-    font-size: 0.82rem;
+    font-size: var(--text-meta);
     font-weight: 500;
     letter-spacing: 0.01em;
     color: var(--text);
@@ -233,23 +333,26 @@
     flex-shrink: 0;
   }
 
-  /* ===== WINNER BANNER ===== */
+  /* ===== WINNER BANNER =====
+     注意：max-width 和 margin 由外层 .hero-summary 容器统一管，子块自己不设。
+     
+     它是 .hero-summary（静态 block 容器）的普通子项，不在任何动画容器里。
+     动画由 .hero-summary-debate-slot 自己做，winner-banner 完全不参与，
+     浏览器不会对它做任何逐帧重算——这正是银纸说的"子容器没变就不该逐帧渲染"。 */
   .winner-banner {
-    max-width: 1440px;
-    margin: 0 auto calc(var(--rhythm) * 1.5);
-    padding: calc(var(--rhythm) * 2) calc(var(--rhythm) * 3);
+    padding: var(--gap-block-m) var(--gap-section);
     background: var(--gold-bg);
     border: 1px solid var(--gold-border);
     border-radius: 12px;
     display: flex;
     align-items: center;
-    gap: calc(var(--rhythm));
+    gap: calc(var(--gap-inline));
   }
 
-  .winner-icon { font-size: 1.15rem; flex-shrink: 0; }
+  .winner-icon { font-size: var(--text-heading-m); flex-shrink: 0; }
 
   .winner-text {
-    font-size: 0.88rem;
+    font-size: var(--text-emphasis);
     line-height: 1.55;
     color: var(--text-dim);
   }
@@ -261,23 +364,22 @@
 
   /* ===== DEBATE SUMMARY STRIP =====
      Same shape & rhythm as winner-banner, but de-emphasized
-     (transparent bg, dashed border, neutral text). */
+     (transparent bg, dashed border, neutral text).
+     注意：max-width 和 margin 由外层 .hero-summary 容器统一管，子块自己不设。 */
   .debate-summary {
-    max-width: 1440px;
-    margin: 0 auto calc(var(--rhythm) * 1.5);
-    padding: calc(var(--rhythm) * 2) calc(var(--rhythm) * 3);
+    padding: var(--gap-block-m) var(--gap-section);
     background: transparent;
     border: 1px dashed var(--border-strong);
     border-radius: 12px;
     display: flex;
     align-items: center;
-    gap: calc(var(--rhythm));
+    gap: calc(var(--gap-inline));
   }
 
-  .debate-summary-icon { font-size: 1.15rem; flex-shrink: 0; }
+  .debate-summary-icon { font-size: var(--text-heading-m); flex-shrink: 0; }
 
   .debate-summary-text {
-    font-size: 0.88rem;
+    font-size: var(--text-emphasis);
     line-height: 1.55;
     color: var(--text-dim);
   }
@@ -287,7 +389,7 @@
   /* ===== GRID — hero + sidebar layout ===== */
   .grid {
     display: flex;
-    gap: var(--space-m);
+    gap: var(--gap-block-s);
     max-width: 1440px;
     margin: 0 auto;
     /* stretch: 让主卡高度自动 ≥ sidebar 总高度，避免主卡正文短时下方留大白
@@ -311,18 +413,18 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: var(--space-m);
+    gap: var(--gap-block-s);
     min-width: 240px;
     max-width: 360px;
   }
 
   .card.collapsed .card-summary-wrap {
-    /* padding-top 对齐主卡 card-body 的 18px(=2.25×rhythm)，让"header→正文起始"间距统一 */
-    padding: calc(var(--rhythm) * 2.25) calc(var(--rhythm) * 1.5) calc(var(--rhythm) * 1.25);
+    /* padding-top 对齐主卡 card-body 的 --gap-block-m (18px)，让"header→正文起始"间距统一 */
+    padding: var(--gap-block-m) var(--gap-block-s) var(--gap-block-s);
   }
 
   .card.collapsed .card-summary-text {
-    font-size: 0.8rem;
+    font-size: var(--text-meta);
     line-height: 1.6;
   }
 
@@ -344,7 +446,7 @@
   .card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
   .card.recommended {
     border-color: var(--gold-border);
-    box-shadow: 0 2px 10px rgba(180, 83, 9, 0.08);
+    box-shadow: 0 2px 10px var(--gold-shadow);
   }
   .card.recommended::before {
     content: '';
@@ -360,11 +462,11 @@
   .card:not(.collapsed) .card-summary-wrap { display: none !important; }
 
   .card-header {
-    padding: calc(var(--rhythm) * 2) calc(var(--rhythm) * 2.25);
+    padding: var(--gap-block-m) var(--gap-block-m);
     display: flex;
     align-items: center;   /* outer: vertical center between left/right groups */
     gap: 8px;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--divider);
     flex-shrink: 0;
     min-width: 0;
     min-height: 52px;       /* ensure consistent height across hero & collapsed */
@@ -401,11 +503,11 @@
   }
 
   .card.collapsed .card-header:hover {
-    background: rgba(0,0,0,0.02);
+    background: var(--neutral-hover-bg);
   }
 
   .card-header .expand-hint {
-    font-size: 0.72rem;
+    font-size: var(--text-micro);
     color: var(--accent);
     font-weight: 500;
     flex-shrink: 0;
@@ -456,7 +558,7 @@
 
   .model-name {
     font-weight: 600;
-    font-size: 0.85rem;
+    font-size: var(--text-body);
     letter-spacing: 0.01em;
     margin-right: 0;
     /* Truncate with ellipsis when header is too narrow */
@@ -470,7 +572,7 @@
   }
 
   .recommended-tag {
-    font-size: 0.68rem;
+    font-size: var(--text-micro);
     font-weight: 600;
     color: var(--gold);
     background: var(--gold-bg);
@@ -490,7 +592,7 @@
   }
 
   .word-count {
-    font-size: 0.72rem;
+    font-size: var(--text-micro);
     color: var(--text-light);
     white-space: nowrap;
     flex-shrink: 0;
@@ -503,7 +605,7 @@
     align-items: center;
     gap: 5px;
     padding: 4px 10px;
-    font-size: 0.72rem;
+    font-size: var(--text-micro);
     font-weight: 500;
     color: var(--text-light);
     background: transparent;
@@ -522,8 +624,8 @@
 
   .header-share-btn:hover {
     color: var(--accent);
-    border-color: rgba(37, 99, 235, 0.3);
-    background: rgba(37, 99, 235, 0.04);
+    border-color: var(--accent-border-hover);
+    background: var(--accent-bg-hover);
   }
 
   .header-share-btn svg {
@@ -534,8 +636,8 @@
 
   /* ===== CARD BODY — core reading area ===== */
   .card-body {
-    padding: calc(var(--rhythm) * 2.25);
-    font-size: 0.9rem;
+    padding: var(--gap-block-m);
+    font-size: var(--text-emphasis);
     line-height: 1.9;
     flex: 1;
     overflow-y: auto;
@@ -548,20 +650,20 @@
   /* Summary preview — shown when card is collapsed */
   .card-summary-wrap {
     display: none;
-    padding: calc(var(--rhythm) * 2) calc(var(--rhythm) * 2.25);
+    padding: var(--gap-block-m) var(--gap-block-m);
   }
 
   .card-summary-title {
-    font-size: 0.72rem;
+    font-size: var(--text-micro);
     font-weight: 600;
     color: var(--text-light);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    margin-bottom: calc(var(--rhythm) * 0.6);
+    margin-bottom: var(--gap-tight);
   }
 
   .card-summary-text {
-    font-size: 0.86rem;
+    font-size: var(--text-body);
     line-height: 1.75;
     color: var(--text-dim);
   }
@@ -637,24 +739,24 @@
     width: 100%;
     height: auto;
     border-radius: 10px;
-    margin-bottom: calc(var(--rhythm) * 1.5);
+    margin-bottom: var(--gap-block-s);
     display: block;
   }
 
   /* Condensed answer text — default view */
   .condensed-answer {
-    font-size: 0.86rem;
+    font-size: var(--text-body);
     line-height: 1.75;
     color: var(--text-dim);
   }
 
-  .condensed-answer p { margin-bottom: calc(var(--rhythm) * 1.2); }
+  .condensed-answer p { margin-bottom: var(--gap-block-s); }
 
   /* Full original answer — hidden until expanded */
   .full-answer {
-    border-top: 1px dashed var(--border);
-    padding-top: calc(var(--rhythm) * 1.5);
-    margin-top: calc(var(--rhythm) * 1);
+    border-top: 1px dashed var(--divider);
+    padding-top: var(--gap-block-s);
+    margin-top: var(--gap-inline);
   }
 
   /* ========= 按钮基类 .btn-ghost =========
@@ -669,7 +771,7 @@
     padding: 0 14px;
     box-sizing: border-box;
     font-family: inherit;
-    font-size: 0.73rem;
+    font-size: var(--text-meta);
     font-weight: 500;
     line-height: 1;
     letter-spacing: 0.01em;
@@ -683,8 +785,8 @@
   }
   .btn-ghost:hover {
     color: var(--accent);
-    border-color: rgba(37, 99, 235, 0.3);
-    background: rgba(37, 99, 235, 0.04);
+    border-color: var(--accent-border-hover);
+    background: var(--accent-bg-hover);
   }
   .btn-ghost svg { width: 12px; height: 12px; flex-shrink: 0; display: block; }
 
@@ -692,7 +794,7 @@
   .answer-action-row {
     display: flex;
     gap: 8px;
-    margin-top: calc(var(--rhythm) * 1);
+    margin-top: var(--gap-inline);
   }
   .answer-action-row .answer-toggle { flex: 1; margin-top: 0; }
   .answer-action-row .answer-share-btn { flex-shrink: 0; }
@@ -701,39 +803,16 @@
   .answer-share-btn { display: none; }
   .answer-section:not(.is-collapsed) .answer-share-btn { display: inline-flex; }
 
-  /* ========= .answer-toggle 差异化 =========
-     基础尺寸继承 .btn-ghost，仅重写"折叠态"品牌色 */
+  /* ========= .answer-toggle =========
+     展开/收起按钮 = 分享按钮 = 同一种按钮，逻辑上没有差异。
+     完全继承 .btn-ghost 的 default 和 hover，只额外加一条布局差异：
+     折叠态独占一行（width 100%）；展开态在 action-row 里由 flex:1 接管宽度。
+     不再为"折叠态"做差异化品牌色——折叠/展开/share 三个按钮表现完全一致。 */
   .answer-toggle {
     width: 100%;
-    color: var(--accent);
-    background: rgba(37, 99, 235, 0.03);
-    border-color: rgba(37, 99, 235, 0.12);
-  }
-  .answer-toggle:hover {
-    color: var(--accent);
-    background: rgba(37, 99, 235, 0.06);
-    border-color: rgba(37, 99, 235, 0.12);
-  }
-  /* 展开态：回到与 share 一致的中性灰 ghost，交互由 .btn-ghost:hover 接管 */
-  .answer-toggle.expanded {
-    color: var(--text-light);
-    background: transparent;
-    border-color: var(--border);
-  }
-  /* 收起态 hover：与 header-share-btn 风格一致——浅蓝边框 + 浅蓝底 + 蓝字 */
-  .answer-toggle.expanded:hover {
-    color: var(--accent);
-    border-color: rgba(37, 99, 235, 0.3);
-    background: rgba(37, 99, 235, 0.04);
   }
 
-  .answer-section.collapsed .answer-content {
-    display: none;
-  }
-
-  .answer-section.collapsed .answer-toggle {
-    display: flex;
-  }
+  /* .answer-section 折叠态用 .is-collapsed 标记，参见上方 card-full 区块 */
 
   /* Scrollbar — subtle light style */
   .card-body::-webkit-scrollbar { width: 4px; }
@@ -743,8 +822,8 @@
 
   /* ===== HEADINGS ===== */
   .card-body h1, .card-body h2, .card-body h3, .card-body h4 {
-    margin-top: calc(var(--rhythm) * 2.5);
-    margin-bottom: calc(var(--rhythm) * 1.25);
+    margin-top: var(--gap-block-m);
+    margin-bottom: var(--gap-block-s);
     font-weight: 650;
     color: var(--text);
     line-height: 1.35;
@@ -754,30 +833,30 @@
   .card-body h2:first-child,
   .card-body h3:first-child,
   .card-body h4:first-child { margin-top: 0; }
-  .card-body h1 { font-size: 1.18rem; }
-  .card-body h2 { font-size: 1.07rem; }
-  .card-body h3 { font-size: 0.98rem; }
-  .card-body h4 { font-size: 0.91rem; }
+  .card-body h1 { font-size: var(--text-heading-m); }
+  .card-body h2 { font-size: var(--text-heading-s); }
+  .card-body h3 { font-size: var(--text-strong); }
+  .card-body h4 { font-size: var(--text-emphasis); }
 
   /* ===== PARAGRAPHS & TEXT ===== */
   .card-body p {
-    margin-bottom: calc(var(--rhythm) * 1.5);
+    margin-bottom: var(--gap-block-s);
   }
 
   /* ===== LISTS ===== */
   .card-body ul, .card-body ol {
-    margin-bottom: calc(var(--rhythm) * 1.5);
+    margin-bottom: var(--gap-block-s);
     padding-left: 1.65rem;
   }
   .card-body li {
-    margin-bottom: calc(var(--rhythm) * 0.75);
-    padding-left: calc(var(--rhythm) * 0.35);
+    margin-bottom: var(--gap-inline);
+    padding-left: var(--gap-tight);
   }
   .card-body li::marker { color: var(--text-light); font-size: 0.82em; }
 
   /* ===== CODE ===== */
   .card-body code {
-    background: var(--code-bg);
+    background: var(--surface-muted);
     padding: 0.2em 0.5em;
     border-radius: 5px;
     font-size: 0.84em;
@@ -788,19 +867,19 @@
 
   /* ===== CODE BLOCKS ===== */
   .card-body pre {
-    background: var(--pre-bg);
+    background: var(--surface-muted);
     border: 1px solid var(--border);
     border-radius: 10px;
-    padding: calc(var(--rhythm) * 2);
+    padding: var(--gap-block-m);
     overflow-x: auto;
-    margin: calc(var(--rhythm) * 1.5) 0;
+    margin: var(--gap-block-s) 0;
     width: 100%;
   }
 
   .card-body pre code {
     background: none;
     padding: 0;
-    font-size: 0.81rem;
+    font-size: var(--text-meta);
     line-height: 1.75;
     color: #3c3c38;
     word-break: normal;
@@ -811,9 +890,9 @@
   /* ===== BLOCKQUOTE ===== */
   .card-body blockquote {
     border-left: 3px solid var(--border-strong);
-    padding-left: calc(var(--rhythm) * 1.5);
+    padding-left: var(--gap-block-s);
     color: var(--text-dim);
-    margin: calc(var(--rhythm) * 1.5) 0;
+    margin: var(--gap-block-s) 0;
     font-style: normal;
     line-height: 1.75;
   }
@@ -823,15 +902,15 @@
     width: 100%;
     table-layout: fixed;
     border-collapse: collapse;
-    margin: calc(var(--rhythm) * 1.5) 0;
-    font-size: 0.84rem;
+    margin: var(--gap-block-s) 0;
+    font-size: var(--text-body);
     border: 1px solid var(--border);
     border-radius: 8px;
     overflow: hidden;
   }
 
   .card-body th, .card-body td {
-    padding: calc(var(--rhythm) * 1.1) calc(var(--rhythm) * 1.3);
+    padding: var(--gap-block-s) var(--gap-block-s);
     border: 1px solid var(--border);
     text-align: left;
     vertical-align: top;
@@ -842,9 +921,9 @@
   }
 
   .card-body th {
-    background: var(--code-bg);
+    background: var(--surface-muted);
     font-weight: 600;
-    font-size: 0.81rem;
+    font-size: var(--text-meta);
     color: var(--text);
   }
 
@@ -854,29 +933,29 @@
   .card-body img {
     max-width: 100%; height: auto;
     border-radius: 8px;
-    margin: calc(var(--rhythm) * 1.5) 0;
+    margin: var(--gap-block-s) 0;
   }
 
   .card-body svg {
     max-width: 100%; height: auto;
     border-radius: 8px;
-    margin: calc(var(--rhythm) * 1.5) 0;
+    margin: var(--gap-block-s) 0;
   }
 
   /* ===== HORIZONTAL RULE ===== */
   .card-body hr {
     border: none;
-    border-top: 1px solid var(--border);
-    margin: calc(var(--rhythm) * 2) 0;
+    border-top: 1px solid var(--divider);
+    margin: var(--gap-block-m) 0;
   }
 
   /* ===== MATH ===== */
   .math-block {
-    background: var(--code-bg);
+    background: var(--surface-muted);
     border: 1px dashed var(--border-strong);
     border-radius: 8px;
-    padding: calc(var(--rhythm) * 1.25);
-    margin: calc(var(--rhythm) * 1.5) 0;
+    padding: var(--gap-block-s);
+    margin: var(--gap-block-s) 0;
     font-family: var(--mono);
     font-style: italic;
     color: var(--text-dim);
@@ -891,17 +970,14 @@
    */
 
 
-  /* Debate panel container inside card — same card as answer, no separator */
-  .debate-panel {
-    /* border-top removed: debate panel is part of the same card */
-  }
+  /* .debate-panel 容器自身无样式：与 answer 共享卡片，不要分隔线 */
 
   .debate-panel-header {
     display: flex;
     align-items: center;
-    gap: calc(var(--rhythm));
-    padding: calc(var(--rhythm) * 1.25) calc(var(--rhythm) * 2.25);
-    font-size: 0.78rem;
+    gap: calc(var(--gap-inline));
+    padding: var(--gap-block-s) var(--gap-block-m);
+    font-size: var(--text-meta);
     font-weight: 600;
     color: var(--text-dim);
     letter-spacing: 0.03em;
@@ -912,14 +988,14 @@
   }
 
   .debate-panel-header:hover {
-    background: rgba(0,0,0,0.015);
+    background: var(--neutral-hover-bg-soft);
   }
 
-  .debate-panel-header .icon { font-size: 0.88rem; }
+  .debate-panel-header .icon { font-size: var(--text-emphasis); }
 
   .debate-panel-header .toggle {
     margin-left: auto;
-    font-size: 0.68rem;
+    font-size: var(--text-micro);
     transition: transform 0.2s ease;
     color: var(--text-light);
   }
@@ -929,16 +1005,16 @@
   }
 
   .debate-count {
-    font-size: 0.7rem;
+    font-size: var(--text-micro);
     font-weight: 500;
     color: var(--text-light);
-    margin-left: calc(var(--rhythm) / 2);
+    margin-left: var(--gap-tight);
   }
 
   /* Debate items (hidden when collapsed) */
   .debate-items {
     display: none;
-    padding: 0 calc(var(--rhythm) * 2.25) calc(var(--rhythm) * 2);
+    padding: 0 var(--gap-block-m) var(--gap-block-m);
   }
 
   .debate-panel.open .debate-items {
@@ -947,7 +1023,7 @@
 
   /* Individual debate item */
   .debate-item {
-    margin-bottom: calc(var(--rhythm) * 1.5);
+    margin-bottom: var(--gap-block-s);
     border-radius: 8px;
     overflow: hidden;
   }
@@ -961,26 +1037,26 @@
   }
   .debate-item.expanded .debate-detail {
     display: block;
-    margin-top: calc(var(--rhythm) * 1);
+    margin-top: var(--gap-inline);
   }
 
   .debate-expand-trigger {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    font-size: 0.73rem;
+    font-size: var(--text-meta);
     font-weight: 500;
     color: var(--text-light);
     cursor: pointer;
     user-select: none;
-    margin-top: calc(var(--rhythm) * 0.75);
+    margin-top: var(--gap-inline);
     padding: 3px 8px;
     border-radius: 6px;
     transition: background 0.15s ease, color 0.15s ease;
   }
 
   .debate-expand-trigger:hover {
-    background: rgba(0,0,0,0.05);
+    background: var(--neutral-hover-bg-strong);
     color: var(--text-dim);
   }
 
@@ -993,20 +1069,20 @@
     background: var(--challenge-red-bg);
     border: 1px solid var(--challenge-red-border);
     border-radius: 10px;
-    padding: calc(var(--rhythm) * 1.5);
-    margin-bottom: calc(var(--rhythm) * 1.25);
+    padding: var(--gap-block-s);
+    margin-bottom: var(--gap-block-s);
   }
 
   .debate-challenge-header {
     display: flex;
     align-items: center;
-    gap: calc(var(--rhythm) / 2);
-    margin-bottom: calc(var(--rhythm) * 1.25);
-    font-size: 0.82rem;
+    gap: var(--gap-tight);
+    margin-bottom: var(--gap-block-s);
+    font-size: var(--text-meta);
     font-weight: 700;
   }
 
-  .debate-challenge-header .label-icon { font-size: 0.9rem; flex-shrink: 0; }
+  .debate-challenge-header .label-icon { font-size: var(--text-emphasis); flex-shrink: 0; }
 
   .debate-challenge-header .label {
     color: var(--challenge-red);
@@ -1014,8 +1090,8 @@
   }
 
   .debate-challenge-header .target-badge {
-    margin-left: calc(var(--rhythm) / 2);
-    font-size: 0.75rem;
+    margin-left: var(--gap-tight);
+    font-size: var(--text-meta);
     font-weight: 600;
     color: var(--challenge-red);
     background: var(--surface);
@@ -1025,33 +1101,33 @@
   }
 
   .debate-challenge-reason {
-    font-size: 0.84rem;
+    font-size: var(--text-body);
     font-weight: 650;
     color: var(--text);
-    margin-bottom: calc(var(--rhythm) * 0.75);
+    margin-bottom: var(--gap-inline);
     line-height: 1.55;
   }
 
   .debate-challenge-detail {
-    font-size: 0.84rem;
+    font-size: var(--text-body);
     line-height: 1.8;
     color: var(--text-dim);
   }
 
   /* Quote reference block — shows what's being replied to */
   .debate-quote {
-    background: rgba(0,0,0,0.025);
+    background: var(--neutral-quote-bg);
     border-left: 3px solid var(--border-strong);
     border-radius: 0 6px 6px 0;
-    padding: calc(var(--rhythm) * 0.9) calc(var(--rhythm) * 1.1);
-    margin-bottom: calc(var(--rhythm) * 1);
-    font-size: 0.78rem;
+    padding: var(--gap-inline) var(--gap-block-s);
+    margin-bottom: var(--gap-inline);
+    font-size: var(--text-meta);
     color: var(--text-dim);
     line-height: 1.6;
   }
 
   .debate-quote-label {
-    font-size: 0.7rem;
+    font-size: var(--text-micro);
     font-weight: 600;
     color: var(--text-light);
     text-transform: uppercase;
@@ -1069,19 +1145,19 @@
     background: var(--rebuttal-green-bg);
     border: 1px solid var(--rebuttal-green-border);
     border-radius: 10px;
-    padding: calc(var(--rhythm) * 1.5);
+    padding: var(--gap-block-s);
   }
 
   .debate-rebuttal-header {
     display: flex;
     align-items: center;
-    gap: calc(var(--rhythm) / 2);
-    margin-bottom: calc(var(--rhythm) * 1.25);
-    font-size: 0.82rem;
+    gap: var(--gap-tight);
+    margin-bottom: var(--gap-block-s);
+    font-size: var(--text-meta);
     font-weight: 700;
   }
 
-  .debate-rebuttal-header .label-icon { font-size: 0.9rem; flex-shrink: 0; }
+  .debate-rebuttal-header .label-icon { font-size: var(--text-emphasis); flex-shrink: 0; }
 
   .debate-rebuttal-header .label {
     color: var(--rebuttal-green);
@@ -1089,8 +1165,8 @@
   }
 
   .debate-rebuttal-header .from-badge {
-    margin-left: calc(var(--rhythm) / 2);
-    font-size: 0.75rem;
+    margin-left: var(--gap-tight);
+    font-size: var(--text-meta);
     font-weight: 600;
     color: var(--rebuttal-green);
     background: var(--surface);
@@ -1100,30 +1176,48 @@
   }
 
   .debate-rebuttal-body {
-    font-size: 0.84rem;
+    font-size: var(--text-body);
     line-height: 1.8;
     color: var(--text-dim);
   }
 
+  /* Inline rebuttal preview inside debate-overview（攻击 quote 下方的"我方反驳"摘要）
+     原来是 inline style，抽出来：margin-top + 行高 = 紧贴 quote 但与之后内容区分 */
+  .rebuttal-preview {
+    margin-top: var(--gap-inline);
+    line-height: 1.6;
+  }
+  .rebuttal-preview-label {
+    color: var(--rebuttal-green);
+  }
+
+  /* 攻防详情里"对方挑战正文 → 我方反驳完整版"之间的分隔
+     原来是 inline style border-top + padding-top + margin-top，抽出来 */
+  .debate-rebuttal-body--inline {
+    margin-top: var(--gap-block-s);
+    padding-top: var(--gap-block-s);
+    border-top: 1px solid var(--divider);
+  }
+
   /* Counter-rebuttal (Round 4 final strike) — blue tint */
   .debate-counter {
-    background: rgba(37, 99, 235, 0.04);
-    border: 1px solid rgba(37, 99, 235, 0.15);
+    background: var(--accent-bg-hover);
+    border: 1px solid var(--accent-border-bg);
     border-radius: 10px;
-    padding: calc(var(--rhythm) * 1.5);
-    margin-top: calc(var(--rhythm) * 1);
+    padding: var(--gap-block-s);
+    margin-top: var(--gap-inline);
   }
 
   .debate-counter-header {
     display: flex;
     align-items: center;
-    gap: calc(var(--rhythm) / 2);
-    margin-bottom: calc(var(--rhythm) * 1.25);
-    font-size: 0.82rem;
+    gap: var(--gap-tight);
+    margin-bottom: var(--gap-block-s);
+    font-size: var(--text-meta);
     font-weight: 700;
   }
 
-  .debate-counter-header .label-icon { font-size: 0.9rem; flex-shrink: 0; }
+  .debate-counter-header .label-icon { font-size: var(--text-emphasis); flex-shrink: 0; }
 
   .debate-counter-header .label {
     color: var(--accent);
@@ -1131,26 +1225,26 @@
   }
 
   .debate-counter-header .target-badge {
-    margin-left: calc(var(--rhythm) / 2);
-    font-size: 0.75rem;
+    margin-left: var(--gap-tight);
+    font-size: var(--text-meta);
     font-weight: 600;
     color: var(--accent);
     background: var(--surface);
     padding: 0.2em 0.7em;
     border-radius: 10px;
-    border: 1px solid rgba(37, 99, 235, 0.25);
+    border: 1px solid var(--accent-border-strong);
   }
 
   .debate-counter-body {
-    font-size: 0.84rem;
+    font-size: var(--text-body);
     line-height: 1.8;
     color: var(--text-dim);
   }
 
   /* No-debate indicator — inline, no clickable header */
   .no-debate-inline {
-    padding: var(--space-m) var(--space-l);
-    font-size: 0.81rem;
+    padding: var(--gap-block-s) var(--gap-block-m);
+    font-size: var(--text-meta);
     color: var(--text-light);
     text-align: center;
   }
@@ -1158,9 +1252,9 @@
   /* ===== FOOTER ===== */
   .footer {
     text-align: center;
-    margin-top: calc(var(--rhythm) * 6);
+    margin-top: var(--gap-canvas-large);
     color: #c4c4c0;
-    font-size: 0.76rem;
+    font-size: var(--text-meta);
   }
 
   /* ===== RESPONSIVE ===== */
@@ -1171,13 +1265,13 @@
     .card.collapsed { flex: 1; min-width: 200px; }
   }
   @media (max-width: 720px) {
-    body { padding: calc(var(--rhythm) * 3); }
+    body { padding: var(--gap-section); }
     .grid { flex-direction: column; }
     .card:not(.collapsed) { flex: none; width: 100%; }
     .sidebar { flex-direction: column; max-width: none; }
     .card.collapsed { width: 100%; }
-    .question { font-size: 1.08rem; padding: 0; }
-    .hero { padding: calc(var(--rhythm) * 2); border-radius: 14px; }
+    .question { font-size: var(--text-heading-s); padding: 0; }
+    .hero { padding: var(--gap-block-m); border-radius: 14px; }
     .roster { justify-content: center; }
     /* Mobile: hero card expanded, others truly collapsed */
     .card.collapsed .card-summary-wrap { 
@@ -1189,13 +1283,13 @@
   /* ===== BACK TO TOP =====
      位置规范：position: fixed 悬浮在视口；水平右沿对齐 body 内容右沿（= 侧栏右沿）；
      垂直离视口底 24px。滚过一屏后渐显。
-     right 直接用 body 的水平 padding（calc(var(--rhythm) * 4)），无需 JS 计算。 */
+     right 直接用 body 的水平 padding（var(--gap-section-major)），无需 JS 计算。 */
   .back-to-top {
     position: fixed;
-    right: calc(var(--rhythm) * 4);
-    /* bottom = body padding-bottom (40px) + footer 高度 (~22px) + footer margin-top (48px) ≈ 110px
-       让按钮中心略对齐主卡底沿那条视觉线 */
-    bottom: 110px;
+    right: var(--gap-section-major);
+    /* 视口固定距离 24px，不再绑 footer 高度——
+       footer 改 padding/margin 时这里也不会错位（解耦） */
+    bottom: var(--gap-section);
     width: 40px;
     height: 40px;
     border-radius: 50%;
@@ -1215,7 +1309,7 @@
     z-index: 50;
     -webkit-tap-highlight-color: transparent;
     /* 用 ↑（U+2191）字符，主流字体里都有，比 › 稳定 */
-    font-size: 1.1rem;
+    font-size: var(--text-hero);
     line-height: 1;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
   }
@@ -1233,8 +1327,8 @@
   }
 
   .back-to-top:hover {
-    background: rgba(37, 99, 235, 0.04);
-    border-color: rgba(37, 99, 235, 0.3);
+    background: var(--accent-bg-hover);
+    border-color: var(--accent-border-hover);
     color: var(--accent);
   }
   .back-to-top:hover .back-to-top-icon {
@@ -1242,7 +1336,7 @@
   }
 
   @media (max-width: 720px) {
-    .back-to-top { right: calc(var(--rhythm) * 3); bottom: 12px; width: 36px; height: 36px; font-size: 1rem; }
+    .back-to-top { right: var(--gap-section); bottom: 12px; width: 36px; height: 36px; font-size: var(--text-strong); }
   }
 </style>
 

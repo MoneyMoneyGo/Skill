@@ -1,0 +1,11 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Local generated outputs (keep skill repo clean)
+moco-*.html
+debate-data.json
+
+# OS
+.DS_Store

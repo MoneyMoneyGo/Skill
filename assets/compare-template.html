@@ -870,11 +870,155 @@
       overflow: hidden; 
     }
   }
+
+  /* ===== SHARE BUTTON ===== */
+  .share-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    padding: 10px 0;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text-light);
+    background: transparent;
+    border: none;
+    border-top: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+    letter-spacing: 0.03em;
+  }
+  .share-btn:hover {
+    background: rgba(0,0,0,0.03);
+    color: var(--accent);
+  }
+  .share-btn svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
+
+  /* ===== TOAST ===== */
+  .toast {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: #1a1a2e;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+    opacity: 0;
+    transition: transform 0.35s cubic-bezier(.4,0,.2,1), opacity 0.35s ease;
+    z-index: 9999;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .toast.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+
 </style>
 
 <!-- MathJax for LaTeX rendering -->
 <script id="MathJax-script" async
-  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+// === Share button handlers ===
+document.querySelectorAll('.share-btn').forEach(function(btn) {
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    var modelName = this.getAttribute('data-model');
+    var hash = '#model=' + encodeURIComponent(modelName);
+    var url = window.location.href.split('#')[0] + hash;
+
+    if (navigator.share) {
+      navigator.share({
+        title: document.title + ' — ' + modelName,
+        text: '查看 ' + modelName + ' 的回答',
+        url: url
+      }).catch(function() {});
+      return;
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(function() {
+        showToast('链接已复制，可以粘贴分享 ✓');
+      }).catch(function() { fallbackCopy(url); });
+    } else {
+      fallbackCopy(url);
+    }
+  });
+});
+
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  try {
+    document.execCommand('copy');
+    showToast('链接已复制，可以粘贴分享 ✓');
+  } catch(e) {
+    showToast('请手动复制链接：' + text);
+  }
+  document.body.removeChild(ta);
+}
+
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.className = 'toast';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 2500);
+}
+
+// === Hash-based deep linking ===
+function expandCardByModel(modelName) {
+  var cards = document.querySelectorAll('.card');
+  for (var i = 0; i < cards.length; i++) {
+    if (cards[i].getAttribute('data-model') === modelName) {
+      if (cards[i].classList.contains('collapsed')) {
+        promoteToHero(cards[i]);
+      }
+      var full = cards[i].querySelector('.full-answer');
+      var btn = cards[i].querySelector('.answer-toggle');
+      if (full && full.style.display === 'none') {
+        full.style.display = 'block';
+        if (btn) {
+          btn.classList.add('expanded');
+          var wc = btn.getAttribute('data-wc') || '';
+          btn.innerHTML = '<span class="answer-toggle-icon" style="transform:rotate(180deg);display:inline-block">▲</span> 收起完整回答';
+        }
+      }
+      setTimeout(function() {
+        cards[i].scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+      return;
+    }
+  }
+}
+
+(function() {
+  var hash = window.location.hash;
+  if (hash && hash.indexOf('model=') !== -1) {
+    var modelName = decodeURIComponent(hash.split('model=')[1]);
+    setTimeout(function() { expandCardByModel(modelName); }, 500);
+  }
+})();
+
+</script>
 <script>
 // MoCompare Card Swap Logic:
 // - Clicking a SIDEBAR (collapsed) card → promotes it to HERO position
